@@ -20,4 +20,6 @@ public class MainActivity extends AppCompatActivity {
     public void showToast(View v) {
         Toast.makeText(this, String.format("This button will launch my %s app!", v.getTag()), Toast.LENGTH_SHORT).show();
     }
+
+    // Removed menu items for now
 }
