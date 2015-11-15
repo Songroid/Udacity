@@ -1,13 +1,11 @@
 package com.example.song.myapplication;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.Button;
-import android.widget.Toast;
+
+import com.example.song.myapplication.popular_movies.UI.MoviesActivity;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -17,9 +15,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
-    public void showToast(View v) {
-        Toast.makeText(this, String.format("This button will launch my %s app!", v.getTag()), Toast.LENGTH_SHORT).show();
+    public void toMoviesApp(View v) {
+        Intent intent = new Intent(this, MoviesActivity.class);
+        startActivity(intent);
     }
 
-    // Removed menu items for now
+    //    public void showToast(View v) {
+//        Toast.makeText(this, String.format("This button will launch my %s app!", v.getTag()), Toast.LENGTH_SHORT).show();
+//    }
 }
