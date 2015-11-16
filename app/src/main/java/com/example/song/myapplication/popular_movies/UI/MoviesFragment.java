@@ -31,22 +31,26 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class MoviesFragment extends Fragment {
     private static final String TAG = "MoviesFragment";
-    private static final boolean LOG_ENABLED = true;
+    private static final boolean LOG_ENABLED = false;
+    private final static String MENU_SELECTED = "selected";
 
     private ProgressDialog mDialog;
     private List<JSONObject> movies;
     private MoviesAdapter mAdapter;
 
+    private boolean selectDefault = true;
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (savedInstanceState != null) {
+            selectDefault = savedInstanceState.getBoolean(MENU_SELECTED);
+        }
 
         setHasOptionsMenu(true);
 
@@ -56,7 +60,11 @@ public class MoviesFragment extends Fragment {
         setUpDialog(mDialog);
         mDialog.show();
 
-        getMovies(ApiConstants.POPULARITY_DESC);
+        if (selectDefault) {
+            getMovies(ApiConstants.POPULARITY_DESC);
+        } else {
+            getMovies(ApiConstants.RATINGS_DESC);
+        }
     }
 
     @Override
@@ -71,9 +79,21 @@ public class MoviesFragment extends Fragment {
 
         moviesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                if (LOG_ENABLED) Log.d(TAG, movies.get(i).toString());
-                DetailFragment details = new DetailFragment();
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+
+                JSONObject movie = movies.get(position);
+                if (LOG_ENABLED) Log.d(TAG, movie.toString());
+
+                DetailFragment details = null;
+                try {
+                    details = DetailFragment.newInstance(movie.getString(ApiConstants.TITLE),
+                            movie.getString(ApiConstants.POSTER_PATH),
+                            movie.getString(ApiConstants.RELEASE_DATE),
+                            movie.getString(ApiConstants.RATINGS),
+                            movie.getString(ApiConstants.PLOT_SYNOPSIS));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
                 getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
             }
         });
@@ -94,6 +114,18 @@ public class MoviesFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.menu_movies, menu);
+
+        if (selectDefault) {
+            menu.findItem(R.id.sort_by_popular).setChecked(true);
+        } else {
+            menu.findItem(R.id.sort_by_rated).setChecked(true);
+        }
+
+        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.setDisplayHomeAsUpEnabled(false);
+            actionBar.setTitle(R.string.title_activity_movies);
+        }
     }
 
     @Override
@@ -102,40 +134,24 @@ public class MoviesFragment extends Fragment {
 
         switch (id) {
             case R.id.sort_by_popular:
-                if (item.isChecked()) item.setChecked(false);
-                else item.setChecked(true);
-                defaultSort();
-                mAdapter.notifyDataSetChanged();
+                getMovies(ApiConstants.POPULARITY_DESC);
+                processSettingMenu(item);
+                selectDefault = true;
                 return true;
             case R.id.sort_by_rated:
-                if (item.isChecked()) item.setChecked(false);
-                else item.setChecked(true);
-                Collections.sort(movies, new Comparator<JSONObject>() {
-                    @Override
-                    public int compare(JSONObject movie1, JSONObject movie2) {
-                        try {
-                            double p1 = Double.parseDouble(movie1.getString(ApiConstants.RATINGS));
-                            double p2 = Double.parseDouble(movie2.getString(ApiConstants.RATINGS));
-
-                            if (p1 > p2) {
-                                return -1;
-                            } else if (p1 == p2) {
-                                return 0;
-                            } else {
-                                return 1;
-                            }
-
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                        return 0;
-                    }
-                });
-                mAdapter.notifyDataSetChanged();
+                getMovies(ApiConstants.RATINGS_DESC);
+                processSettingMenu(item);
+                selectDefault = false;
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        savedInstanceState.putBoolean(MENU_SELECTED, selectDefault);
+        super.onSaveInstanceState(savedInstanceState);
     }
 
     private void getMovies(String sortOrder) {
@@ -154,7 +170,7 @@ public class MoviesFragment extends Fragment {
             public void onFailure(Request request, IOException e) {
                 e.printStackTrace();
                 Log.d(TAG, "getMovies onFailure");
-                mDialog.dismiss();
+                if (mDialog.isShowing()) mDialog.dismiss();
             }
 
             @Override
@@ -164,7 +180,7 @@ public class MoviesFragment extends Fragment {
                 String jsonData = response.body().string();
 
                 Log.d(TAG, jsonData);
-                mDialog.dismiss();
+                if (mDialog.isShowing()) mDialog.dismiss();
                 try {
                     parseResult(new JSONObject(jsonData));
                 } catch (JSONException e) {
@@ -187,7 +203,6 @@ public class MoviesFragment extends Fragment {
         for (int i=0; i<movieArray.length(); i++) {
             movies.add(movieArray.getJSONObject(i));
         }
-        defaultSort();
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -196,27 +211,10 @@ public class MoviesFragment extends Fragment {
         });
     }
 
-    private void defaultSort() {
-        Collections.sort(movies, new Comparator<JSONObject>() {
-            @Override
-            public int compare(JSONObject movie1, JSONObject movie2) {
-                try {
-                    double p1 = Double.parseDouble(movie1.getString(ApiConstants.POPULARITY));
-                    double p2 = Double.parseDouble(movie2.getString(ApiConstants.POPULARITY));
+    private void processSettingMenu(MenuItem item) {
+        if (item.isChecked()) item.setChecked(false);
+        else item.setChecked(true);
 
-                    if (p1 > p2) {
-                        return -1;
-                    } else if (p1 == p2) {
-                        return 0;
-                    } else {
-                        return 1;
-                    }
-
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-                return 0;
-            }
-        });
+        mAdapter.notifyDataSetChanged();
     }
 }
