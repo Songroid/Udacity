@@ -17,4 +17,11 @@ public class MoviesActivity extends AppCompatActivity {
         setContentView(R.layout.activity_movies);
     }
 
+    @Override
+    public void onBackPressed() {
+        if(getFragmentManager().getBackStackEntryCount() > 0)
+            getFragmentManager().popBackStack();
+        else
+            super.onBackPressed();
+    }
 }

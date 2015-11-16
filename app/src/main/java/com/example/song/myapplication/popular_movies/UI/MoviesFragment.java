@@ -4,51 +4,53 @@ package com.example.song.myapplication.popular_movies.UI;
 import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.GridView;
 
 import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
+import com.example.song.myapplication.popular_movies.Adapter.MoviesAdapter;
 import com.example.song.myapplication.popular_movies.Data.ApiConstants;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 public class MoviesFragment extends Fragment {
     private static final String TAG = "MoviesFragment";
+    private static final boolean LOG_ENABLED = true;
 
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    private String mParam1;
-    private String mParam2;
     private ProgressDialog mDialog;
-
-    public static MoviesFragment newInstance(String param1, String param2) {
-        MoviesFragment fragment = new MoviesFragment();
-        Bundle args = new Bundle();
-        args.putString(ARG_PARAM1, param1);
-        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
-        return fragment;
-    }
-
-    public MoviesFragment() {
-        // Required empty public constructor
-    }
+    private List<JSONObject> movies;
+    private MoviesAdapter mAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+
+        setHasOptionsMenu(true);
+
+        movies = new ArrayList<>();
 
         mDialog = new ProgressDialog(getActivity());
         setUpDialog(mDialog);
@@ -60,8 +62,80 @@ public class MoviesFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_movies, container, false);
+
+        View view = inflater.inflate(R.layout.fragment_movies, container, false);
+
+        GridView moviesView = (GridView) view.findViewById(R.id.movie_gridView);
+        mAdapter = new MoviesAdapter(getActivity(), movies);
+        moviesView.setAdapter(mAdapter);
+
+        moviesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                if (LOG_ENABLED) Log.d(TAG, movies.get(i).toString());
+                DetailFragment details = new DetailFragment();
+                getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
+            }
+        });
+
+        return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (movies.size() != 0 && LOG_ENABLED) {
+            for (JSONObject o : movies) {
+                Log.d(TAG, "Movie: " + o);
+            }
+        }
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_movies, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.sort_by_popular:
+                if (item.isChecked()) item.setChecked(false);
+                else item.setChecked(true);
+                defaultSort();
+                mAdapter.notifyDataSetChanged();
+                return true;
+            case R.id.sort_by_rated:
+                if (item.isChecked()) item.setChecked(false);
+                else item.setChecked(true);
+                Collections.sort(movies, new Comparator<JSONObject>() {
+                    @Override
+                    public int compare(JSONObject movie1, JSONObject movie2) {
+                        try {
+                            double p1 = Double.parseDouble(movie1.getString(ApiConstants.RATINGS));
+                            double p2 = Double.parseDouble(movie2.getString(ApiConstants.RATINGS));
+
+                            if (p1 > p2) {
+                                return -1;
+                            } else if (p1 == p2) {
+                                return 0;
+                            } else {
+                                return 1;
+                            }
+
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                        return 0;
+                    }
+                });
+                mAdapter.notifyDataSetChanged();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
     }
 
     private void getMovies(String sortOrder) {
@@ -86,8 +160,16 @@ public class MoviesFragment extends Fragment {
             @Override
             public void onResponse(Response response) throws IOException {
                 if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
-                Log.d(TAG, response.body().string());
+
+                String jsonData = response.body().string();
+
+                Log.d(TAG, jsonData);
                 mDialog.dismiss();
+                try {
+                    parseResult(new JSONObject(jsonData));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
@@ -97,5 +179,44 @@ public class MoviesFragment extends Fragment {
         dialog.setTitle(getString(R.string.fragment_movie_loading_title));
         dialog.setMessage(getString(R.string.fragment_movie_loading_message));
         dialog.setIndeterminate(true);
+    }
+
+    private void parseResult(JSONObject input) throws JSONException {
+        JSONArray movieArray = input.getJSONArray(ApiConstants.RESULTS);
+        movies.clear();
+        for (int i=0; i<movieArray.length(); i++) {
+            movies.add(movieArray.getJSONObject(i));
+        }
+        defaultSort();
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                mAdapter.notifyDataSetChanged();
+            }
+        });
+    }
+
+    private void defaultSort() {
+        Collections.sort(movies, new Comparator<JSONObject>() {
+            @Override
+            public int compare(JSONObject movie1, JSONObject movie2) {
+                try {
+                    double p1 = Double.parseDouble(movie1.getString(ApiConstants.POPULARITY));
+                    double p2 = Double.parseDouble(movie2.getString(ApiConstants.POPULARITY));
+
+                    if (p1 > p2) {
+                        return -1;
+                    } else if (p1 == p2) {
+                        return 0;
+                    } else {
+                        return 1;
+                    }
+
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+                return 0;
+            }
+        });
     }
 }

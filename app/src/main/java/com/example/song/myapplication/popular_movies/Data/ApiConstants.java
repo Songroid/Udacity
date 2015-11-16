@@ -8,4 +8,9 @@ public class ApiConstants {
     public static final String SORT_BY = "sort_by";
     public static final String API_KEY = "api_key";
     public static final String POPULARITY_DESC = "popularity.desc";
+    public static final String RESULTS = "results";
+    public static final String POSTER_PATH = "poster_path";
+    public static final String POSTER_IMG_BASE_URL = "http://image.tmdb.org/t/p/w185/";
+    public static final String POPULARITY = "popularity";
+    public static final String RATINGS = "vote_average";
 }

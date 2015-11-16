@@ -8,10 +8,14 @@
     <string name="main_build_it_bigger">Build It Bigger</string>
     <string name="main_xyz_reader">XYZ Reader</string>
     <string name="main_capstone">Capstone</string>
-    <string name="title_activity_movies">MoviesActivity</string>
+    <string name="title_activity_movies">Pop Movies</string>
 
 <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="fragment_movie_loading_title">Loading</string>
     <string name="fragment_movie_loading_message">Loading Movies Data</string>
+    <string name="content_desc_poster">poster image</string>
+    <string name="settings_sort_by_popularity">Sort by popularity</string>
+    <string name="settings_sort_by_ratings">Sort by ratings</string>
+    <string name="movie_detail">MovieDetail</string>
 </resources>
