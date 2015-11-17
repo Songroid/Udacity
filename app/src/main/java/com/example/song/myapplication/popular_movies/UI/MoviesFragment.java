@@ -20,6 +20,7 @@ import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.MoviesAdapter;
 import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Model.Movie;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -81,19 +82,23 @@ public class MoviesFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
-                JSONObject movie = movies.get(position);
-                if (LOG_ENABLED) Log.d(TAG, movie.toString());
+                JSONObject movieJson = movies.get(position);
 
-                DetailFragment details = null;
+                Movie movie = null;
                 try {
-                    details = DetailFragment.newInstance(movie.getString(ApiConstants.TITLE),
-                            movie.getString(ApiConstants.POSTER_PATH),
-                            movie.getString(ApiConstants.RELEASE_DATE),
-                            movie.getString(ApiConstants.RATINGS),
-                            movie.getString(ApiConstants.PLOT_SYNOPSIS));
+                    movie = new Movie(movieJson.getString(ApiConstants.TITLE),
+                            movieJson.getString(ApiConstants.POSTER_PATH),
+                            movieJson.getString(ApiConstants.RELEASE_DATE),
+                            movieJson.getString(ApiConstants.RATINGS),
+                            movieJson.getString(ApiConstants.PLOT_SYNOPSIS));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+
+                if (LOG_ENABLED) Log.d(TAG, movie.toString());
+
+                DetailFragment details = DetailFragment.newInstance(movie);
+
                 getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
             }
         });

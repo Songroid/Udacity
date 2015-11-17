@@ -16,6 +16,7 @@ import android.widget.TextView;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Data.ApiConstants;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
+import com.example.song.myapplication.popular_movies.Model.Movie;
 
 
 public class DetailFragment extends Fragment {
@@ -28,16 +29,17 @@ public class DetailFragment extends Fragment {
     private String ratings;
     private String synopsis;
 
-    public static DetailFragment newInstance(String title, String url, String date, String ratings,
-                                             String overview) {
+    public static DetailFragment newInstance(Movie movie) {
+        if (movie == null) return null;
+
         DetailFragment myFragment = new DetailFragment();
 
         Bundle args = new Bundle();
-        args.putString(ApiConstants.TITLE, title);
-        args.putString(ApiConstants.POSTER_PATH, url);
-        args.putString(ApiConstants.RELEASE_DATE, date);
-        args.putString(ApiConstants.RATINGS, ratings);
-        args.putString(ApiConstants.PLOT_SYNOPSIS, overview);
+        args.putString(ApiConstants.TITLE, movie.getTitle());
+        args.putString(ApiConstants.POSTER_PATH, movie.getPoster_path());
+        args.putString(ApiConstants.RELEASE_DATE, movie.getDate());
+        args.putString(ApiConstants.RATINGS, movie.getRating());
+        args.putString(ApiConstants.PLOT_SYNOPSIS, movie.getOverview());
         myFragment.setArguments(args);
 
         return myFragment;
