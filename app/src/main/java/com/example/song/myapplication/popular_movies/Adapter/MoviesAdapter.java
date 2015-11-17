@@ -10,6 +10,7 @@ import android.widget.ImageView;
 
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Data.RestClient;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -56,17 +57,8 @@ public class MoviesAdapter extends BaseAdapter {
             poster.setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
 
-        String url;
         try {
-            url = ApiConstants.POSTER_IMG_BASE_URL + movies.get(i).getString(ApiConstants.POSTER_PATH);
-
-            Picasso.with(mContext)
-                    .load(url)
-                    .placeholder(R.drawable.placeholder)
-                    .error(R.drawable.error)
-                    .fit()
-                    .tag(mContext)
-                    .into(poster);
+            RestClient.getPosterImage(movies.get(i).getString(ApiConstants.POSTER_PATH), mContext, poster);
         } catch (JSONException e) {
             e.printStackTrace();
         }

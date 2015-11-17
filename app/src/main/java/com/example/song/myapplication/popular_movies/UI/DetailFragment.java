@@ -10,9 +10,12 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Data.RestClient;
 
 
 public class DetailFragment extends Fragment {
@@ -73,8 +76,24 @@ public class DetailFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_detail, container, false);
+        View view = inflater.inflate(R.layout.fragment_detail, container, false);
+
+        TextView titleView = (TextView) view.findViewById(R.id.detail_title);
+        titleView.setText(title);
+
+        ImageView posterView = (ImageView) view.findViewById(R.id.detail_poster);
+        RestClient.getPosterImage(posterUrl, getActivity(), posterView);
+
+        TextView dateView = (TextView) view.findViewById(R.id.detail_date);
+        dateView.setText(releaseDate);
+
+        TextView ratingView = (TextView) view.findViewById(R.id.detail_ratings);
+        ratingView.setText(getString(R.string.rating_unit, ratings));
+
+        TextView overview = (TextView) view.findViewById(R.id.detail_overview);
+        overview.setText(synopsis);
+
+        return view;
     }
 
     @Override
