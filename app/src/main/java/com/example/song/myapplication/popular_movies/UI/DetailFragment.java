@@ -1,10 +1,13 @@
 package com.example.song.myapplication.popular_movies.UI;
 
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -13,21 +16,41 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
-import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Adapter.TrailerAdapter;
+import com.example.song.myapplication.popular_movies.Data.APIConstants;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
 import com.example.song.myapplication.popular_movies.Model.Movie;
+import com.example.song.myapplication.popular_movies.Model.Trailer;
+import com.example.song.myapplication.popular_movies.Util.Misc;
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.Response;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class DetailFragment extends Fragment {
 
     private static final String TAG = "DetailFragment";
 
+    private ProgressDialog mDialog;
+    private List<Trailer> trailers;
+    private TrailerAdapter mAdapter;
+
     private String title;
     private String posterUrl;
     private String releaseDate;
     private String ratings;
     private String synopsis;
+    private String id;
 
     public static DetailFragment newInstance(Movie movie) {
         if (movie == null) return null;
@@ -35,11 +58,12 @@ public class DetailFragment extends Fragment {
         DetailFragment myFragment = new DetailFragment();
 
         Bundle args = new Bundle();
-        args.putString(ApiConstants.TITLE, movie.getTitle());
-        args.putString(ApiConstants.POSTER_PATH, movie.getPoster_path());
-        args.putString(ApiConstants.RELEASE_DATE, movie.getDate());
-        args.putString(ApiConstants.RATINGS, movie.getRating());
-        args.putString(ApiConstants.PLOT_SYNOPSIS, movie.getOverview());
+        args.putString(APIConstants.TITLE, movie.getTitle());
+        args.putString(APIConstants.POSTER_PATH, movie.getPoster_path());
+        args.putString(APIConstants.RELEASE_DATE, movie.getDate());
+        args.putString(APIConstants.RATINGS, movie.getRating());
+        args.putString(APIConstants.PLOT_SYNOPSIS, movie.getOverview());
+        args.putString(APIConstants.ID, movie.getId());
         myFragment.setArguments(args);
 
         return myFragment;
@@ -54,15 +78,27 @@ public class DetailFragment extends Fragment {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
 
+        trailers = new ArrayList<>();
+
         Bundle bundle = getArguments();
         if (bundle != null) {
-            title = bundle.getString(ApiConstants.TITLE);
-            posterUrl = bundle.getString(ApiConstants.POSTER_PATH);
-            releaseDate = bundle.getString(ApiConstants.RELEASE_DATE);
-            ratings = bundle.getString(ApiConstants.RATINGS);
-            synopsis = bundle.getString(ApiConstants.PLOT_SYNOPSIS);
+            title = bundle.getString(APIConstants.TITLE);
+            posterUrl = bundle.getString(APIConstants.POSTER_PATH);
+            releaseDate = bundle.getString(APIConstants.RELEASE_DATE);
+            ratings = bundle.getString(APIConstants.RATINGS);
+            synopsis = bundle.getString(APIConstants.PLOT_SYNOPSIS);
+            id = bundle.getString(APIConstants.ID);
         }
         Log.d(TAG, toString());
+
+        mDialog = new ProgressDialog(getActivity());
+        mDialog = Misc.setUpDialog(mDialog,
+                getString(R.string.fragment_movie_loading_title),
+                getString(R.string.detail_trailer_loading_message));
+        mDialog.show();
+
+        // get trailer urls
+        getTrailer(id);
     }
 
     @Override
@@ -79,6 +115,13 @@ public class DetailFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_detail, container, false);
+
+        RecyclerView trailerView = (RecyclerView) view.findViewById(R.id.trailer_recyclerView);
+        mAdapter = new TrailerAdapter(getActivity(), trailers);
+        trailerView.setAdapter(mAdapter);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getActivity());
+        layoutManager.setOrientation(LinearLayoutManager.HORIZONTAL);
+        trailerView.setLayoutManager(layoutManager);
 
         TextView titleView = (TextView) view.findViewById(R.id.detail_title);
         titleView.setText(title);
@@ -117,6 +160,57 @@ public class DetailFragment extends Fragment {
                 ", releaseDate='" + releaseDate + '\'' +
                 ", ratings='" + ratings + '\'' +
                 ", synopsis='" + synopsis + '\'' +
+                ", id='" + id + '\'' +
                 '}';
+    }
+
+    private void getTrailer(String id) {
+        OkHttpClient client = new OkHttpClient();
+        String url = APIConstants.BASE_URL +
+                String.format(APIConstants.MOVIE_VIDEO_URL, id) +
+                APIConstants.API_KEY + "=" + BuildConfig.THE_MOVIE_DB_API_KEY;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                Log.d(TAG, "getTrailer onFailure");
+                if (mDialog.isShowing()) mDialog.dismiss();
+            }
+
+            @Override
+            public void onResponse(Response response) throws IOException {
+                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                String jsonData = response.body().string();
+                Log.d(TAG, jsonData);
+
+                if (mDialog.isShowing()) mDialog.dismiss();
+                try {
+                    List<JSONObject> trailerJSONs = new ArrayList<>();
+                    trailerJSONs = Misc.parseResult(new JSONObject(jsonData), trailerJSONs);
+                    trailers.clear();
+
+                    for (JSONObject json : trailerJSONs) {
+                        Trailer trailer = new Trailer(json.getString(APIConstants.NAME),
+                                json.getString(APIConstants.SITE),
+                                json.getString(APIConstants.KEY));
+                        trailers.add(trailer);
+                    }
+
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.notifyDataSetChanged();
+                        }
+                    });
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 }

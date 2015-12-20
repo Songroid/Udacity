@@ -13,7 +13,7 @@ public class RestClient {
 
     public static void getPosterImage(String url, Context context, ImageView placeholder) {
         Picasso.with(context)
-                .load(ApiConstants.POSTER_IMG_BASE_URL + url)
+                .load(APIConstants.POSTER_IMG_BASE_URL + url)
                 .placeholder(R.drawable.placeholder)
                 .error(R.drawable.error)
                 .fit()

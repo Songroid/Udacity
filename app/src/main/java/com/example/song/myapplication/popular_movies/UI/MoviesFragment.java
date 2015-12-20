@@ -19,14 +19,14 @@ import android.widget.GridView;
 import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.MoviesAdapter;
-import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Data.APIConstants;
 import com.example.song.myapplication.popular_movies.Model.Movie;
+import com.example.song.myapplication.popular_movies.Util.Misc;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
 import com.squareup.okhttp.Response;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -58,13 +58,15 @@ public class MoviesFragment extends Fragment {
         movies = new ArrayList<>();
 
         mDialog = new ProgressDialog(getActivity());
-        setUpDialog(mDialog);
+        mDialog = Misc.setUpDialog(mDialog,
+                getString(R.string.fragment_movie_loading_title),
+                getString(R.string.fragment_movie_loading_message));
         mDialog.show();
 
         if (selectDefault) {
-            getMovies(ApiConstants.POPULARITY_DESC);
+            getMovies(APIConstants.POPULARITY_DESC);
         } else {
-            getMovies(ApiConstants.RATINGS_DESC);
+            getMovies(APIConstants.RATINGS_DESC);
         }
     }
 
@@ -86,11 +88,12 @@ public class MoviesFragment extends Fragment {
 
                 Movie movie = null;
                 try {
-                    movie = new Movie(movieJson.getString(ApiConstants.TITLE),
-                            movieJson.getString(ApiConstants.POSTER_PATH),
-                            movieJson.getString(ApiConstants.RELEASE_DATE),
-                            movieJson.getString(ApiConstants.RATINGS),
-                            movieJson.getString(ApiConstants.PLOT_SYNOPSIS));
+                    movie = new Movie(movieJson.getString(APIConstants.TITLE),
+                            movieJson.getString(APIConstants.POSTER_PATH),
+                            movieJson.getString(APIConstants.RELEASE_DATE),
+                            movieJson.getString(APIConstants.RATINGS),
+                            movieJson.getString(APIConstants.PLOT_SYNOPSIS),
+                            movieJson.getString(APIConstants.ID));
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -139,12 +142,12 @@ public class MoviesFragment extends Fragment {
 
         switch (id) {
             case R.id.sort_by_popular:
-                getMovies(ApiConstants.POPULARITY_DESC);
+                getMovies(APIConstants.POPULARITY_DESC);
                 processSettingMenu(item);
                 selectDefault = true;
                 return true;
             case R.id.sort_by_rated:
-                getMovies(ApiConstants.RATINGS_DESC);
+                getMovies(APIConstants.RATINGS_DESC);
                 processSettingMenu(item);
                 selectDefault = false;
                 return true;
@@ -161,9 +164,10 @@ public class MoviesFragment extends Fragment {
 
     private void getMovies(String sortOrder) {
         OkHttpClient client = new OkHttpClient();
-        String url = ApiConstants.BASE_URL +
-                ApiConstants.SORT_BY + "=" + sortOrder + "&" +
-                ApiConstants.API_KEY + "=" + BuildConfig.THE_MOVIE_DB_API_KEY;
+        String url = APIConstants.BASE_URL +
+                APIConstants.DISCOVER_MOVIE_URL +
+                APIConstants.SORT_BY + "=" + sortOrder + "&" +
+                APIConstants.API_KEY + "=" + BuildConfig.THE_MOVIE_DB_API_KEY;
 
         Request request = new Request.Builder()
                 .url(url)
@@ -187,33 +191,19 @@ public class MoviesFragment extends Fragment {
                 Log.d(TAG, jsonData);
                 if (mDialog.isShowing()) mDialog.dismiss();
                 try {
-                    parseResult(new JSONObject(jsonData));
+                    movies = Misc.parseResult(new JSONObject(jsonData), movies);
+                    getActivity().runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mAdapter.notifyDataSetChanged();
+                        }
+                    });
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
             }
         });
 
-    }
-
-    private void setUpDialog(ProgressDialog dialog) {
-        dialog.setTitle(getString(R.string.fragment_movie_loading_title));
-        dialog.setMessage(getString(R.string.fragment_movie_loading_message));
-        dialog.setIndeterminate(true);
-    }
-
-    private void parseResult(JSONObject input) throws JSONException {
-        JSONArray movieArray = input.getJSONArray(ApiConstants.RESULTS);
-        movies.clear();
-        for (int i=0; i<movieArray.length(); i++) {
-            movies.add(movieArray.getJSONObject(i));
-        }
-        getActivity().runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mAdapter.notifyDataSetChanged();
-            }
-        });
     }
 
     private void processSettingMenu(MenuItem item) {

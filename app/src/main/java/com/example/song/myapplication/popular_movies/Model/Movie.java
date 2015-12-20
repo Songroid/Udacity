@@ -9,13 +9,20 @@ public class Movie {
     private String date;
     private String rating;
     private String overview;
+    private String id;
 
-    public Movie(String title, String poster_path, String date, String rating, String overview) {
+    public Movie(String title,
+                 String poster_path,
+                 String date,
+                 String rating,
+                 String overview,
+                 String id) {
         this.title = title;
         this.poster_path = poster_path;
         this.date = date;
         this.rating = rating;
         this.overview = overview;
+        this.id = id;
     }
 
     public String getTitle() {
@@ -56,5 +63,13 @@ public class Movie {
 
     public void setOverview(String overview) {
         this.overview = overview;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 }

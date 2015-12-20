@@ -19,4 +19,6 @@
     <string name="movie_detail">MovieDetail</string>
     <string name="hello_world">Hello World</string>
     <string name="rating_unit">%1$s/10</string>
+    <string name="detail_trailers_title">Trailers:</string>
+    <string name="detail_trailer_loading_message">Loading Trailers Data</string>
 </resources>

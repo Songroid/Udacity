@@ -8,10 +8,8 @@ import android.widget.BaseAdapter;
 import android.widget.GridView;
 import android.widget.ImageView;
 
-import com.example.song.myapplication.R;
-import com.example.song.myapplication.popular_movies.Data.ApiConstants;
+import com.example.song.myapplication.popular_movies.Data.APIConstants;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
-import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -58,7 +56,7 @@ public class MoviesAdapter extends BaseAdapter {
         }
 
         try {
-            RestClient.getPosterImage(movies.get(i).getString(ApiConstants.POSTER_PATH), mContext, poster);
+            RestClient.getPosterImage(movies.get(i).getString(APIConstants.POSTER_PATH), mContext, poster);
         } catch (JSONException e) {
             e.printStackTrace();
         }

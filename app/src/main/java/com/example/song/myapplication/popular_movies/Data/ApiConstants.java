@@ -3,8 +3,10 @@ package com.example.song.myapplication.popular_movies.Data;
 /**
  * Created by Song on 11/14/15.
  */
-public class ApiConstants {
-    public static final String BASE_URL = "http://api.themoviedb.org/3/discover/movie?";
+public class APIConstants {
+    public static final String BASE_URL = "http://api.themoviedb.org/3";
+    public static final String DISCOVER_MOVIE_URL = "/discover/movie?";
+    public static final String MOVIE_VIDEO_URL = "/movie/%s/videos?";
     public static final String SORT_BY = "sort_by";
     public static final String API_KEY = "api_key";
     public static final String POPULARITY_DESC = "popularity.desc";
@@ -17,4 +19,10 @@ public class ApiConstants {
     public static final String TITLE = "title";
     public static final String RELEASE_DATE = "release_date";
     public static final String PLOT_SYNOPSIS = "overview";
+    public static final String ID = "id";
+    public static final String NAME = "name";
+    public static final String SITE = "site";
+    public static final String YOUTUBE = "YouTube";
+    public static final String KEY = "key";
+    public static final String YOUTUBE_BASE_URL = "https://www.youtube.com/watch?";
 }
