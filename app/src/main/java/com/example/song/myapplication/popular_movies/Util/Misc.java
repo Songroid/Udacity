@@ -16,6 +16,10 @@ import java.util.List;
  * Created by Song on 12/14/15.
  */
 public class Misc {
+    public static final String STAR_MARKED = "marked";
+    public static final String STAR_UNMARKED = "unmarked";
+    public static final String REVIEW_INTENT = "review_intent";
+
     public static ProgressDialog setUpDialog(ProgressDialog dialog, String title, String content) {
         dialog.setTitle(title);
         dialog.setMessage(content);

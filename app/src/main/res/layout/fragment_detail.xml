@@ -51,20 +51,41 @@
                 android:layout_below="@id/detail_ratings"
                 android:textAppearance="?android:attr/textAppearanceSmall" />
 
+            <ImageView
+                android:id="@+id/mark_as_favorite_star"
+                android:layout_below="@id/detail_overview"
+                android:layout_toRightOf="@id/detail_poster"
+                android:onClick="onStarClicked"
+                android:tag="unmarked"
+                android:src="@drawable/ic_star_unselected"
+                android:contentDescription="@string/mark_as_favorite"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <Button
+                android:id="@+id/review_button"
+                android:layout_below="@id/detail_overview"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_alignParentRight="true"
+                android:layout_marginRight="10dp"
+                android:text="@string/reviews"
+                android:textColor="@color/teal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
         </RelativeLayout>
 
-        <View
-            android:id="@+id/divider"
-            android:background="@android:color/darker_gray"
-            android:layout_width="match_parent"
-            android:layout_height="1dp" />
+        <include layout="@layout/view_divider" />
 
         <android.support.v7.widget.RecyclerView
             android:id="@+id/trailer_recyclerView"
             android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:minHeight="?android:attr/listPreferredItemHeight"
             android:layout_width="match_parent"
-            android:layout_height="50dp" />
+            android:layout_height="45dp" />
+
+        <include layout="@layout/view_divider" />
 
     </LinearLayout>
 

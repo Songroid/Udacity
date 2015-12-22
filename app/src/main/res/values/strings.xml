@@ -20,5 +20,8 @@
     <string name="hello_world">Hello World</string>
     <string name="rating_unit">%1$s/10</string>
     <string name="detail_trailers_title">Trailers:</string>
-    <string name="detail_trailer_loading_message">Loading Trailers Data</string>
+    <string name="detail_loading_message">Loading Data</string>
+    <string name="mark_as_favorite">mark_as_favorite</string>
+    <string name="reviews">reviews</string>
+    <string name="title_activity_review">Reviews</string>
 </resources>

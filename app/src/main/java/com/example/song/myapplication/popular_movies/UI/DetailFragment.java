@@ -2,6 +2,7 @@ package com.example.song.myapplication.popular_movies.UI;
 
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.support.v7.app.ActionBar;
@@ -13,6 +14,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -22,6 +24,7 @@ import com.example.song.myapplication.popular_movies.Adapter.TrailerAdapter;
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
 import com.example.song.myapplication.popular_movies.Model.Movie;
+import com.example.song.myapplication.popular_movies.Model.Review;
 import com.example.song.myapplication.popular_movies.Model.Trailer;
 import com.example.song.myapplication.popular_movies.Util.Misc;
 import com.squareup.okhttp.Callback;
@@ -44,6 +47,8 @@ public class DetailFragment extends Fragment {
     private ProgressDialog mDialog;
     private List<Trailer> trailers;
     private TrailerAdapter mAdapter;
+
+    private String reviewJsonString;
 
     private String title;
     private String posterUrl;
@@ -89,16 +94,15 @@ public class DetailFragment extends Fragment {
             synopsis = bundle.getString(APIConstants.PLOT_SYNOPSIS);
             id = bundle.getString(APIConstants.ID);
         }
-        Log.d(TAG, toString());
 
         mDialog = new ProgressDialog(getActivity());
         mDialog = Misc.setUpDialog(mDialog,
                 getString(R.string.fragment_movie_loading_title),
-                getString(R.string.detail_trailer_loading_message));
-        mDialog.show();
+                getString(R.string.detail_loading_message));
 
         // get trailer urls
         getTrailer(id);
+        getReviews(id);
     }
 
     @Override
@@ -138,6 +142,18 @@ public class DetailFragment extends Fragment {
         TextView overview = (TextView) view.findViewById(R.id.detail_overview);
         overview.setText(synopsis);
 
+        Button review = (Button) view.findViewById(R.id.review_button);
+        review.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (reviewJsonString != null) {
+                    Intent intent = new Intent(getActivity(), ReviewActivity.class);
+                    intent.putExtra(Misc.REVIEW_INTENT, reviewJsonString);
+                    startActivity(intent);
+                }
+            }
+        });
+
         return view;
     }
 
@@ -165,6 +181,8 @@ public class DetailFragment extends Fragment {
     }
 
     private void getTrailer(String id) {
+        mDialog.show();
+
         OkHttpClient client = new OkHttpClient();
         String url = APIConstants.BASE_URL +
                 String.format(APIConstants.MOVIE_VIDEO_URL, id) +
@@ -186,7 +204,7 @@ public class DetailFragment extends Fragment {
                 if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
                 String jsonData = response.body().string();
-                Log.d(TAG, jsonData);
+                Log.d(TAG, "getTrailer onResponse: " + jsonData);
 
                 if (mDialog.isShowing()) mDialog.dismiss();
                 try {
@@ -210,6 +228,35 @@ public class DetailFragment extends Fragment {
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
+            }
+        });
+    }
+
+    private void getReviews(String id) {
+        mDialog.show();
+
+        OkHttpClient client = new OkHttpClient();
+        String url = APIConstants.BASE_URL +
+                String.format(APIConstants.MOVIE_REVIEW_URL, id) +
+                APIConstants.API_KEY + "=" + BuildConfig.THE_MOVIE_DB_API_KEY;
+
+        Request request = new Request.Builder()
+                .url(url)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                Log.d(TAG, "getReviews onFailure is called");
+                if (mDialog.isShowing()) mDialog.dismiss();
+            }
+
+            @Override
+            public void onResponse(Response response) throws IOException {
+                if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+                if (mDialog.isShowing()) mDialog.dismiss();
+                reviewJsonString = response.body().string();
             }
         });
     }
