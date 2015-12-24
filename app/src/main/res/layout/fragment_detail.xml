@@ -55,8 +55,6 @@
                 android:id="@+id/mark_as_favorite_star"
                 android:layout_below="@id/detail_overview"
                 android:layout_toRightOf="@id/detail_poster"
-                android:onClick="onStarClicked"
-                android:tag="unmarked"
                 android:src="@drawable/ic_star_unselected"
                 android:contentDescription="@string/mark_as_favorite"
                 android:layout_width="wrap_content"

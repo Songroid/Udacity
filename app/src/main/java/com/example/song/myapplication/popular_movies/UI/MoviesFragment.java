@@ -20,8 +20,10 @@ import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.MoviesAdapter;
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
+import com.example.song.myapplication.popular_movies.Data.DatabaseHelper;
 import com.example.song.myapplication.popular_movies.Model.Movie;
 import com.example.song.myapplication.popular_movies.Util.Misc;
+import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -44,6 +46,7 @@ public class MoviesFragment extends Fragment {
     private MoviesAdapter mAdapter;
 
     private boolean selectDefault = true;
+    private RuntimeExceptionDao<Movie, String> dao;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -68,6 +71,8 @@ public class MoviesFragment extends Fragment {
         } else {
             getMovies(APIConstants.RATINGS_DESC);
         }
+
+        onCreateDb();
     }
 
     @Override
@@ -88,12 +93,20 @@ public class MoviesFragment extends Fragment {
 
                 Movie movie = null;
                 try {
-                    movie = new Movie(movieJson.getString(APIConstants.TITLE),
-                            movieJson.getString(APIConstants.POSTER_PATH),
-                            movieJson.getString(APIConstants.RELEASE_DATE),
-                            movieJson.getString(APIConstants.RATINGS),
-                            movieJson.getString(APIConstants.PLOT_SYNOPSIS),
-                            movieJson.getString(APIConstants.ID));
+                    String id = movieJson.getString(APIConstants.ID);
+
+                    if (dao.idExists(id)) {
+                        movie = dao.queryForId(id);
+                    } else {
+                        movie = new Movie(movieJson.getString(APIConstants.TITLE),
+                                movieJson.getString(APIConstants.POSTER_PATH),
+                                movieJson.getString(APIConstants.RELEASE_DATE),
+                                movieJson.getString(APIConstants.RATINGS),
+                                movieJson.getString(APIConstants.PLOT_SYNOPSIS),
+                                id,
+                                false);
+                    }
+
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
@@ -211,5 +224,9 @@ public class MoviesFragment extends Fragment {
         else item.setChecked(true);
 
         mAdapter.notifyDataSetChanged();
+    }
+
+    private void onCreateDb() {
+        dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
     }
 }

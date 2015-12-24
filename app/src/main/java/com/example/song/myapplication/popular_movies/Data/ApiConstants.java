@@ -21,6 +21,7 @@ public class APIConstants {
     public static final String RELEASE_DATE = "release_date";
     public static final String PLOT_SYNOPSIS = "overview";
     public static final String ID = "id";
+    public static final String IS_FAVORITE = "is_favorite";
     public static final String NAME = "name";
     public static final String SITE = "site";
     public static final String YOUTUBE = "YouTube";

@@ -22,11 +22,13 @@ import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.TrailerAdapter;
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
+import com.example.song.myapplication.popular_movies.Data.DatabaseHelper;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
 import com.example.song.myapplication.popular_movies.Model.Movie;
 import com.example.song.myapplication.popular_movies.Model.Review;
 import com.example.song.myapplication.popular_movies.Model.Trailer;
 import com.example.song.myapplication.popular_movies.Util.Misc;
+import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -57,6 +59,9 @@ public class DetailFragment extends Fragment {
     private String synopsis;
     private String id;
 
+    private RuntimeExceptionDao<Movie, String> dao;
+    private Movie movie;
+
     public static DetailFragment newInstance(Movie movie) {
         if (movie == null) return null;
 
@@ -69,6 +74,7 @@ public class DetailFragment extends Fragment {
         args.putString(APIConstants.RATINGS, movie.getRating());
         args.putString(APIConstants.PLOT_SYNOPSIS, movie.getOverview());
         args.putString(APIConstants.ID, movie.getId());
+        args.putBoolean(APIConstants.IS_FAVORITE, movie.isFavorite());
         myFragment.setArguments(args);
 
         return myFragment;
@@ -93,6 +99,9 @@ public class DetailFragment extends Fragment {
             ratings = bundle.getString(APIConstants.RATINGS);
             synopsis = bundle.getString(APIConstants.PLOT_SYNOPSIS);
             id = bundle.getString(APIConstants.ID);
+            boolean isFavorite = bundle.getBoolean(APIConstants.IS_FAVORITE);
+
+            movie = new Movie(title, posterUrl, releaseDate, ratings, synopsis, id, isFavorite);
         }
 
         mDialog = new ProgressDialog(getActivity());
@@ -103,6 +112,8 @@ public class DetailFragment extends Fragment {
         // get trailer urls
         getTrailer(id);
         getReviews(id);
+
+        onCreateDb();
     }
 
     @Override
@@ -151,6 +162,32 @@ public class DetailFragment extends Fragment {
                     intent.putExtra(Misc.REVIEW_INTENT, reviewJsonString);
                     startActivity(intent);
                 }
+            }
+        });
+
+        final ImageView star = (ImageView) view.findViewById(R.id.mark_as_favorite_star);
+
+        if (movie.isFavorite()) {
+            star.setImageResource(R.drawable.ic_star_selected);
+            star.setTag(Misc.STAR_MARKED);
+        } else {
+            star.setImageResource(R.drawable.ic_star_unselected);
+            star.setTag(Misc.STAR_UNMARKED);
+        }
+
+        star.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (star.getTag().equals(Misc.STAR_UNMARKED)) {
+                    star.setImageResource(R.drawable.ic_star_selected);
+                    movie.setIsFavorite(true);
+                    star.setTag(Misc.STAR_MARKED);
+                } else if (star.getTag().equals(Misc.STAR_MARKED)) {
+                    star.setImageResource(R.drawable.ic_star_unselected);
+                    movie.setIsFavorite(false);
+                    star.setTag(Misc.STAR_UNMARKED);
+                }
+                dao.update(movie);
             }
         });
 
@@ -259,5 +296,10 @@ public class DetailFragment extends Fragment {
                 reviewJsonString = response.body().string();
             }
         });
+    }
+
+    private void onCreateDb() {
+        dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
+        dao.createOrUpdate(movie);
     }
 }
