@@ -6,8 +6,9 @@ import android.util.Log;
 
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Model.Movie;
+import com.example.song.myapplication.popular_movies.Model.Review;
+import com.example.song.myapplication.popular_movies.Model.Trailer;
 import com.j256.ormlite.android.apptools.OrmLiteSqliteOpenHelper;
-import com.j256.ormlite.dao.Dao;
 import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.j256.ormlite.support.ConnectionSource;
 import com.j256.ormlite.table.TableUtils;
@@ -24,8 +25,9 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
     private static final String TAG = DatabaseHelper.class.getName();
 
     private static DatabaseHelper instance = null;
-    private Dao<Movie, String> dao = null;
     private RuntimeExceptionDao<Movie, String> runtimeDao = null;
+    private RuntimeExceptionDao<Trailer, String> trailersDao = null;
+    private RuntimeExceptionDao<Review, String> reviewsDao = null;
 
     protected DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION, R.raw.ormlite_config);
@@ -43,6 +45,8 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
         try {
             Log.d(TAG, "onCreate");
             TableUtils.createTable(connectionSource, Movie.class);
+            TableUtils.createTable(connectionSource, Trailer.class);
+            TableUtils.createTable(connectionSource, Review.class);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -53,17 +57,12 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
         try {
             Log.d(TAG, "onUpgrade");
             TableUtils.dropTable(connectionSource, Movie.class, true);
+            TableUtils.dropTable(connectionSource, Trailer.class, true);
+            TableUtils.dropTable(connectionSource, Review.class, true);
             onCreate(database, connectionSource);
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public Dao<Movie, String> getDao() throws SQLException {
-        if (dao == null) {
-            dao = getDao(Movie.class);
-        }
-        return dao;
     }
 
     public RuntimeExceptionDao<Movie, String> getMovieDao() {
@@ -73,10 +72,25 @@ public class DatabaseHelper extends OrmLiteSqliteOpenHelper {
         return runtimeDao;
     }
 
+    public RuntimeExceptionDao<Trailer, String> getTrailerDao() {
+        if (trailersDao == null) {
+            trailersDao = getRuntimeExceptionDao(Trailer.class);
+        }
+        return trailersDao;
+    }
+
+    public RuntimeExceptionDao<Review, String> getReviewDao() {
+        if (reviewsDao == null) {
+            reviewsDao = getRuntimeExceptionDao(Review.class);
+        }
+        return reviewsDao;
+    }
+
     @Override
     public void close() {
         super.close();
-        dao = null;
         runtimeDao = null;
+        trailersDao = null;
+        reviewsDao = null;
     }
 }

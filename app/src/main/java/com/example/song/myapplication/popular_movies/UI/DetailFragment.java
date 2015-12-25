@@ -1,7 +1,6 @@
 package com.example.song.myapplication.popular_movies.UI;
 
 
-import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.app.Fragment;
@@ -46,8 +45,8 @@ public class DetailFragment extends Fragment {
 
     private static final String TAG = "DetailFragment";
 
-    private ProgressDialog mDialog;
     private List<Trailer> trailers;
+    private ArrayList<Review> reviews;
     private TrailerAdapter mAdapter;
 
     private String reviewJsonString;
@@ -60,6 +59,9 @@ public class DetailFragment extends Fragment {
     private String id;
 
     private RuntimeExceptionDao<Movie, String> dao;
+    private RuntimeExceptionDao<Trailer, String> trailerDao;
+    private RuntimeExceptionDao<Review, String> reviewDao;
+
     private Movie movie;
 
     public static DetailFragment newInstance(Movie movie) {
@@ -90,6 +92,7 @@ public class DetailFragment extends Fragment {
         setHasOptionsMenu(true);
 
         trailers = new ArrayList<>();
+        reviews = new ArrayList<>();
 
         Bundle bundle = getArguments();
         if (bundle != null) {
@@ -104,16 +107,17 @@ public class DetailFragment extends Fragment {
             movie = new Movie(title, posterUrl, releaseDate, ratings, synopsis, id, isFavorite);
         }
 
-        mDialog = new ProgressDialog(getActivity());
-        mDialog = Misc.setUpDialog(mDialog,
-                getString(R.string.fragment_movie_loading_title),
-                getString(R.string.detail_loading_message));
-
         // get trailer urls
         getTrailer(id);
         getReviews(id);
 
         onCreateDb();
+
+        // read db
+        List<Trailer> tmpTrailers = trailerDao.queryForEq(APIConstants.ID, movie.getId());
+        List<Review> tmpReviews = reviewDao.queryForEq(Review.MOVIE_ID, movie.getId());
+        if (tmpTrailers != null && !tmpTrailers.isEmpty()) trailers.addAll(tmpTrailers);
+        if (tmpReviews != null && !tmpReviews.isEmpty()) reviews.addAll(tmpReviews);
     }
 
     @Override
@@ -153,13 +157,13 @@ public class DetailFragment extends Fragment {
         TextView overview = (TextView) view.findViewById(R.id.detail_overview);
         overview.setText(synopsis);
 
-        Button review = (Button) view.findViewById(R.id.review_button);
+        final Button review = (Button) view.findViewById(R.id.review_button);
         review.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (reviewJsonString != null) {
+                if (!reviews.isEmpty()) {
                     Intent intent = new Intent(getActivity(), ReviewActivity.class);
-                    intent.putExtra(Misc.REVIEW_INTENT, reviewJsonString);
+                    intent.putParcelableArrayListExtra(Misc.REVIEW_INTENT, reviews);
                     startActivity(intent);
                 }
             }
@@ -218,8 +222,6 @@ public class DetailFragment extends Fragment {
     }
 
     private void getTrailer(String id) {
-        mDialog.show();
-
         OkHttpClient client = new OkHttpClient();
         String url = APIConstants.BASE_URL +
                 String.format(APIConstants.MOVIE_VIDEO_URL, id) +
@@ -233,7 +235,6 @@ public class DetailFragment extends Fragment {
             @Override
             public void onFailure(Request request, IOException e) {
                 Log.d(TAG, "getTrailer onFailure");
-                if (mDialog.isShowing()) mDialog.dismiss();
             }
 
             @Override
@@ -243,7 +244,6 @@ public class DetailFragment extends Fragment {
                 String jsonData = response.body().string();
                 Log.d(TAG, "getTrailer onResponse: " + jsonData);
 
-                if (mDialog.isShowing()) mDialog.dismiss();
                 try {
                     List<JSONObject> trailerJSONs = new ArrayList<>();
                     trailerJSONs = Misc.parseResult(new JSONObject(jsonData), trailerJSONs);
@@ -252,7 +252,10 @@ public class DetailFragment extends Fragment {
                     for (JSONObject json : trailerJSONs) {
                         Trailer trailer = new Trailer(json.getString(APIConstants.NAME),
                                 json.getString(APIConstants.SITE),
-                                json.getString(APIConstants.KEY));
+                                json.getString(APIConstants.KEY),
+                                movie.getId());
+
+                        trailerDao.createOrUpdate(trailer);
                         trailers.add(trailer);
                     }
 
@@ -270,8 +273,6 @@ public class DetailFragment extends Fragment {
     }
 
     private void getReviews(String id) {
-        mDialog.show();
-
         OkHttpClient client = new OkHttpClient();
         String url = APIConstants.BASE_URL +
                 String.format(APIConstants.MOVIE_REVIEW_URL, id) +
@@ -285,15 +286,30 @@ public class DetailFragment extends Fragment {
             @Override
             public void onFailure(Request request, IOException e) {
                 Log.d(TAG, "getReviews onFailure is called");
-                if (mDialog.isShowing()) mDialog.dismiss();
             }
 
             @Override
             public void onResponse(Response response) throws IOException {
                 if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
 
-                if (mDialog.isShowing()) mDialog.dismiss();
                 reviewJsonString = response.body().string();
+
+                try {
+                    List<JSONObject> reviewJSONs = new ArrayList<>();
+                    reviewJSONs = Misc.parseResult(new JSONObject(reviewJsonString), reviewJSONs);
+                    reviews.clear();
+
+                    for (JSONObject json : reviewJSONs) {
+                        Review review = new Review(json.getString(APIConstants.AUTHOR),
+                                json.getString(APIConstants.CONTENT),
+                                movie.getId());
+
+                        reviewDao.createOrUpdate(review);
+                        reviews.add(review);
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
         });
     }
@@ -301,5 +317,7 @@ public class DetailFragment extends Fragment {
     private void onCreateDb() {
         dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
         dao.createOrUpdate(movie);
+        trailerDao = DatabaseHelper.getInstance(getActivity()).getTrailerDao();
+        reviewDao = DatabaseHelper.getInstance(getActivity()).getReviewDao();
     }
 }

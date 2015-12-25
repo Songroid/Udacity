@@ -30,8 +30,6 @@ public class ReviewActivity extends AppCompatActivity {
 
     public final static String TAG = "ReviewActivity";
 
-    private List<Review> reviews;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -42,32 +40,16 @@ public class ReviewActivity extends AppCompatActivity {
         ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) actionBar.setDisplayHomeAsUpEnabled(true);
 
-        reviews = new ArrayList<>();
-
         Intent intent = getIntent();
         if (intent != null) {
-            String jsonData = intent.getStringExtra(Misc.REVIEW_INTENT);
-            Log.d(TAG, "getIntent getStringExtra: " + jsonData);
+            ArrayList<Review> reviews = intent.getParcelableArrayListExtra(Misc.REVIEW_INTENT);
+            Log.d(TAG, "getIntent getParcelableArrayListExtra: " + reviews);
 
-            try {
-                List<JSONObject> reviewJSONs = new ArrayList<>();
-                reviewJSONs = Misc.parseResult(new JSONObject(jsonData), reviewJSONs);
-                reviews.clear();
-
-                for (JSONObject json : reviewJSONs) {
-                    Review review = new Review(json.getString(APIConstants.AUTHOR),
-                            json.getString(APIConstants.CONTENT));
-                    reviews.add(review);
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
-            }
+            RecyclerView reviewsView = (RecyclerView) findViewById(R.id.review_list);
+            ReviewAdapter adapter = new ReviewAdapter(reviews);
+            reviewsView.setAdapter(adapter);
+            reviewsView.setLayoutManager(new LinearLayoutManager(this));
         }
-
-        RecyclerView reviewsView = (RecyclerView) findViewById(R.id.review_list);
-        ReviewAdapter adapter = new ReviewAdapter(reviews);
-        reviewsView.setAdapter(adapter);
-        reviewsView.setLayoutManager(new LinearLayoutManager(this));
     }
 
     @Override

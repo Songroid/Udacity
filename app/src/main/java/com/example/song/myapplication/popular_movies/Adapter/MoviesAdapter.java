@@ -23,9 +23,9 @@ public class MoviesAdapter extends BaseAdapter {
     private Context mContext;
     private List<JSONObject> movies;
 
-    public MoviesAdapter(Context mContext, List<JSONObject> posterUrls) {
+    public MoviesAdapter(Context mContext, List<JSONObject> movies) {
         this.mContext = mContext;
-        this.movies = posterUrls;
+        this.movies = movies;
     }
 
     @Override

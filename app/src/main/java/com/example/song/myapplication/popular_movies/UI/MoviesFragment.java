@@ -91,31 +91,16 @@ public class MoviesFragment extends Fragment {
 
                 JSONObject movieJson = movies.get(position);
 
-                Movie movie = null;
                 try {
-                    String id = movieJson.getString(APIConstants.ID);
+                    Movie movie = getMoviefromJSON(movieJson, false);
+                    if (LOG_ENABLED) Log.d(TAG, movie.toString());
 
-                    if (dao.idExists(id)) {
-                        movie = dao.queryForId(id);
-                    } else {
-                        movie = new Movie(movieJson.getString(APIConstants.TITLE),
-                                movieJson.getString(APIConstants.POSTER_PATH),
-                                movieJson.getString(APIConstants.RELEASE_DATE),
-                                movieJson.getString(APIConstants.RATINGS),
-                                movieJson.getString(APIConstants.PLOT_SYNOPSIS),
-                                id,
-                                false);
-                    }
+                    DetailFragment details = DetailFragment.newInstance(movie);
+                    getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
 
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
-                if (LOG_ENABLED) Log.d(TAG, movie.toString());
-
-                DetailFragment details = DetailFragment.newInstance(movie);
-
-                getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
             }
         });
 
@@ -205,6 +190,13 @@ public class MoviesFragment extends Fragment {
                 if (mDialog.isShowing()) mDialog.dismiss();
                 try {
                     movies = Misc.parseResult(new JSONObject(jsonData), movies);
+
+                    // create or update database
+                    for (JSONObject json : movies) {
+                        Movie movie = getMoviefromJSON(json, true);
+                        dao.createOrUpdate(movie);
+                    }
+
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -228,5 +220,26 @@ public class MoviesFragment extends Fragment {
 
     private void onCreateDb() {
         dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
+    }
+
+    private Movie getMoviefromJSON(JSONObject json, boolean forceUpdate) throws JSONException {
+        Movie movie;
+        String id = json.getString(APIConstants.ID);
+
+        movie = new Movie(json.getString(APIConstants.TITLE),
+                json.getString(APIConstants.POSTER_PATH),
+                json.getString(APIConstants.RELEASE_DATE),
+                json.getString(APIConstants.RATINGS),
+                json.getString(APIConstants.PLOT_SYNOPSIS),
+                id,
+                false);
+
+        if (forceUpdate) {
+            dao.createOrUpdate(movie);
+        } else {
+            if (dao.idExists(id)) movie = dao.queryForId(id);
+        }
+
+        return movie;
     }
 }
