@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    class="com.example.song.myapplication.popular_movies.UI.MoviesFragment"
-    android:id="@+id/fragment_movies"
-    android:layout_width="match_parent"
+
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_height="match_parent"
-    tools:context="com.example.song.myapplication.popular_movies.UI.MoviesFragment" />
+    android:layout_width="match_parent"
+    android:orientation="vertical" >
+
+    <include layout="@layout/toolbar" />
+
+    <FrameLayout
+        android:id="@+id/place_holder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+    </FrameLayout>
+
+</LinearLayout>
+
+

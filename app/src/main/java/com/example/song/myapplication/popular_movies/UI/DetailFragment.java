@@ -2,14 +2,19 @@ package com.example.song.myapplication.popular_movies.UI;
 
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
-import android.support.v7.app.ActionBar;
+import android.support.v4.app.Fragment;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.ShareActionProvider;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -121,19 +126,13 @@ public class DetailFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(true);
-            actionBar.setTitle(R.string.movie_detail);
-        }
-    }
-
-    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_detail, container, false);
+
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        activity.getSupportActionBar().setTitle(R.string.movie_detail);
+        activity.getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         RecyclerView trailerView = (RecyclerView) view.findViewById(R.id.trailer_recyclerView);
         mAdapter = new TrailerAdapter(getActivity(), trailers);
@@ -196,6 +195,21 @@ public class DetailFragment extends Fragment {
         });
 
         return view;
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        menu.clear();
+        inflater.inflate(R.menu.menu_movie_detail, menu);
+
+        MenuItem item = menu.findItem(R.id.movie_detail_share);
+        ShareActionProvider mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+
+        if (!trailers.isEmpty()) {
+            Intent share = new Intent(Intent.ACTION_VIEW, Uri.parse(
+                    APIConstants.YOUTUBE_BASE_URL + "v=" + trailers.get(0).getKey()));
+            mShareActionProvider.setShareIntent(share);
+        }
     }
 
     @Override
@@ -263,6 +277,7 @@ public class DetailFragment extends Fragment {
                         @Override
                         public void run() {
                             mAdapter.notifyDataSetChanged();
+                            getActivity().invalidateOptionsMenu();
                         }
                     });
                 } catch (JSONException e) {

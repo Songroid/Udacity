@@ -5,7 +5,10 @@ import com.j256.ormlite.field.DatabaseField;
 /**
  * Created by Song on 11/16/15.
  */
-public class Movie {
+public class Movie implements Comparable {
+
+    public static final String IS_FAVORITE = "isFavorite";
+
     @DatabaseField(index = true)
     private String title;
     @DatabaseField
@@ -102,5 +105,15 @@ public class Movie {
                 ", id='" + id + '\'' +
                 ", isFavorite=" + isFavorite +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Object obj) {
+        Movie compareObj = (Movie) obj;
+
+        int value1 = isFavorite()? 1 : 0;
+        int value2 = compareObj.isFavorite()? 1 : 0;
+
+        return value2 - value1;
     }
 }

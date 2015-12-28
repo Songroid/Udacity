@@ -3,9 +3,10 @@ package com.example.song.myapplication.popular_movies.UI;
 
 import android.app.ProgressDialog;
 import android.os.Bundle;
-import android.app.Fragment;
+import android.support.v4.app.Fragment;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -34,26 +35,36 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class MoviesFragment extends Fragment {
     private static final String TAG = "MoviesFragment";
     private static final boolean LOG_ENABLED = false;
     private final static String MENU_SELECTED = "selected";
+    private final static String FAVORITE_SELECTED = "selected";
+
+    private static final int POPULARITY = 0;
+    private static final int RATINGS = 1;
+    private static final int FAVORITE = 2;
 
     private ProgressDialog mDialog;
-    private List<JSONObject> movies;
+    private List<Movie> movies;
     private MoviesAdapter mAdapter;
 
-    private boolean selectDefault = true;
+    private int selectDefault;
     private RuntimeExceptionDao<Movie, String> dao;
+
+    private boolean isFavoriteChecked;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         if (savedInstanceState != null) {
-            selectDefault = savedInstanceState.getBoolean(MENU_SELECTED);
+            selectDefault = savedInstanceState.getInt(MENU_SELECTED);
+            isFavoriteChecked = savedInstanceState.getBoolean(FAVORITE_SELECTED);
         }
 
         setHasOptionsMenu(true);
@@ -66,10 +77,13 @@ public class MoviesFragment extends Fragment {
                 getString(R.string.fragment_movie_loading_message));
         mDialog.show();
 
-        if (selectDefault) {
-            getMovies(APIConstants.POPULARITY_DESC);
-        } else {
-            getMovies(APIConstants.RATINGS_DESC);
+        switch (selectDefault) {
+            case POPULARITY: case FAVORITE:
+                getMovies(APIConstants.POPULARITY_DESC);
+                break;
+            case RATINGS:
+                getMovies(APIConstants.RATINGS_DESC);
+                break;
         }
 
         onCreateDb();
@@ -81,6 +95,10 @@ public class MoviesFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_movies, container, false);
 
+        AppCompatActivity activity = (AppCompatActivity) getActivity();
+        activity.getSupportActionBar().setTitle(R.string.main_spotify_streamer);
+        activity.getSupportActionBar().setDisplayHomeAsUpEnabled(false);
+
         GridView moviesView = (GridView) view.findViewById(R.id.movie_gridView);
         mAdapter = new MoviesAdapter(getActivity(), movies);
         moviesView.setAdapter(mAdapter);
@@ -89,18 +107,13 @@ public class MoviesFragment extends Fragment {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
-                JSONObject movieJson = movies.get(position);
+                Movie movie = movies.get(position);
 
-                try {
-                    Movie movie = getMoviefromJSON(movieJson, false);
-                    if (LOG_ENABLED) Log.d(TAG, movie.toString());
+                if (LOG_ENABLED) Log.d(TAG, movie.toString());
 
-                    DetailFragment details = DetailFragment.newInstance(movie);
-                    getFragmentManager().beginTransaction().replace(android.R.id.content, details).addToBackStack(null).commit();
+                DetailFragment details = DetailFragment.newInstance(movie);
+                getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.place_holder, details).addToBackStack(null).commit();
 
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
             }
         });
 
@@ -110,53 +123,63 @@ public class MoviesFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (movies.size() != 0 && LOG_ENABLED) {
-            for (JSONObject o : movies) {
-                Log.d(TAG, "Movie: " + o);
+        if (!movies.isEmpty() && LOG_ENABLED) {
+            for (Movie movie : movies) {
+                Log.d(TAG, "Movie: " + movie);
             }
         }
     }
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        menu.clear();
         inflater.inflate(R.menu.menu_movies, menu);
 
-        if (selectDefault) {
-            menu.findItem(R.id.sort_by_popular).setChecked(true);
-        } else {
-            menu.findItem(R.id.sort_by_rated).setChecked(true);
-        }
-
-        ActionBar actionBar = ((AppCompatActivity) getActivity()).getSupportActionBar();
-        if (actionBar != null) {
-            actionBar.setDisplayHomeAsUpEnabled(false);
-            actionBar.setTitle(R.string.title_activity_movies);
+        switch (selectDefault) {
+            case POPULARITY:
+                menu.findItem(R.id.sort_by_popular).setChecked(true);
+                break;
+            case RATINGS:
+                menu.findItem(R.id.sort_by_rated).setChecked(true);
+                break;
+            case FAVORITE:
+                menu.findItem(R.id.sort_by_favorite).setChecked(true);
+                break;
         }
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
+        processSettingMenu(item);
 
         switch (id) {
             case R.id.sort_by_popular:
                 getMovies(APIConstants.POPULARITY_DESC);
-                processSettingMenu(item);
-                selectDefault = true;
-                return true;
+                selectDefault = POPULARITY;
+                isFavoriteChecked = false;
+                break;
             case R.id.sort_by_rated:
                 getMovies(APIConstants.RATINGS_DESC);
-                processSettingMenu(item);
-                selectDefault = false;
-                return true;
+                selectDefault = RATINGS;
+                isFavoriteChecked = false;
+                break;
+            case R.id.sort_by_favorite:
+                selectDefault = FAVORITE;
+                isFavoriteChecked = true;
+                getMovies(APIConstants.POPULARITY_DESC);
+                break;
             default:
                 return super.onOptionsItemSelected(item);
         }
+
+        return true;
     }
 
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        savedInstanceState.putBoolean(MENU_SELECTED, selectDefault);
+        savedInstanceState.putInt(MENU_SELECTED, selectDefault);
+        savedInstanceState.putBoolean(FAVORITE_SELECTED, isFavoriteChecked);
         super.onSaveInstanceState(savedInstanceState);
     }
 
@@ -166,6 +189,7 @@ public class MoviesFragment extends Fragment {
                 APIConstants.DISCOVER_MOVIE_URL +
                 APIConstants.SORT_BY + "=" + sortOrder + "&" +
                 APIConstants.API_KEY + "=" + BuildConfig.THE_MOVIE_DB_API_KEY;
+        Log.d(TAG, url);
 
         Request request = new Request.Builder()
                 .url(url)
@@ -188,13 +212,21 @@ public class MoviesFragment extends Fragment {
 
                 Log.d(TAG, jsonData);
                 if (mDialog.isShowing()) mDialog.dismiss();
+
                 try {
-                    movies = Misc.parseResult(new JSONObject(jsonData), movies);
+                    movies.clear();
+                    List<JSONObject> tmpList = new ArrayList<>();
+                    tmpList = Misc.parseResult(new JSONObject(jsonData), tmpList);
 
                     // create or update database
-                    for (JSONObject json : movies) {
+                    for (JSONObject json : tmpList) {
                         Movie movie = getMoviefromJSON(json, true);
+                        movies.add(movie);
                         dao.createOrUpdate(movie);
+
+                        if (isFavoriteChecked) {
+                            Collections.sort(movies);
+                        }
                     }
 
                     getActivity().runOnUiThread(new Runnable() {
@@ -224,7 +256,12 @@ public class MoviesFragment extends Fragment {
 
     private Movie getMoviefromJSON(JSONObject json, boolean forceUpdate) throws JSONException {
         Movie movie;
+        boolean isFavorite = false;
+
         String id = json.getString(APIConstants.ID);
+
+        Movie movieFromDb = dao.queryForId(id);
+        if (movieFromDb != null) isFavorite = movieFromDb.isFavorite();
 
         movie = new Movie(json.getString(APIConstants.TITLE),
                 json.getString(APIConstants.POSTER_PATH),
@@ -232,7 +269,7 @@ public class MoviesFragment extends Fragment {
                 json.getString(APIConstants.RATINGS),
                 json.getString(APIConstants.PLOT_SYNOPSIS),
                 id,
-                false);
+                isFavorite);
 
         if (forceUpdate) {
             dao.createOrUpdate(movie);

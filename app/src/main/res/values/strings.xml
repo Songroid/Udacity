@@ -16,7 +16,7 @@
     <string name="content_desc_poster">poster image</string>
     <string name="settings_sort_by_popularity">Sort by popularity</string>
     <string name="settings_sort_by_ratings">Sort by ratings</string>
-    <string name="movie_detail">MovieDetail</string>
+    <string name="movie_detail">Movie Detail</string>
     <string name="hello_world">Hello World</string>
     <string name="rating_unit">%1$s/10</string>
     <string name="detail_trailers_title">Trailers:</string>
@@ -24,4 +24,7 @@
     <string name="mark_as_favorite">mark_as_favorite</string>
     <string name="reviews">reviews</string>
     <string name="title_activity_review">Reviews</string>
+    <string name="settings_sort_by_favorite">Sort by favorite</string>
+    <string name="movie_detail_share">Share</string>
+    <string name="movie_show_favorite">Show favorite</string>
 </resources>

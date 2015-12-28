@@ -10,6 +10,7 @@ import android.widget.ImageView;
 
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
+import com.example.song.myapplication.popular_movies.Model.Movie;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -21,9 +22,9 @@ import java.util.List;
  */
 public class MoviesAdapter extends BaseAdapter {
     private Context mContext;
-    private List<JSONObject> movies;
+    private List<Movie> movies;
 
-    public MoviesAdapter(Context mContext, List<JSONObject> movies) {
+    public MoviesAdapter(Context mContext, List<Movie> movies) {
         this.mContext = mContext;
         this.movies = movies;
     }
@@ -55,11 +56,7 @@ public class MoviesAdapter extends BaseAdapter {
             poster.setScaleType(ImageView.ScaleType.CENTER_CROP);
         }
 
-        try {
-            RestClient.getPosterImage(movies.get(i).getString(APIConstants.POSTER_PATH), mContext, poster);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
+        RestClient.getPosterImage(movies.get(i).getPoster_path(), mContext, poster);
 
         return poster;
     }
