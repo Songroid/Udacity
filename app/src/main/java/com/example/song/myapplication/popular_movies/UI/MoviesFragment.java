@@ -4,9 +4,7 @@ package com.example.song.myapplication.popular_movies.UI;
 import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -35,7 +33,6 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,6 +54,8 @@ public class MoviesFragment extends Fragment {
     private RuntimeExceptionDao<Movie, String> dao;
 
     private boolean isFavoriteChecked;
+    private boolean isShowingFavorite;
+    private AppCompatActivity activity;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -95,8 +94,7 @@ public class MoviesFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_movies, container, false);
 
-        AppCompatActivity activity = (AppCompatActivity) getActivity();
-        activity.getSupportActionBar().setTitle(R.string.main_spotify_streamer);
+        activity = (AppCompatActivity) getActivity();
         activity.getSupportActionBar().setDisplayHomeAsUpEnabled(false);
 
         GridView moviesView = (GridView) view.findViewById(R.id.movie_gridView);
@@ -135,6 +133,13 @@ public class MoviesFragment extends Fragment {
         menu.clear();
         inflater.inflate(R.menu.menu_movies, menu);
 
+        MenuItem favorite = menu.findItem(R.id.show_favorite);
+        menu.setGroupVisible(R.id.sort_group, !isShowingFavorite);
+        favorite.setIcon(isShowingFavorite ? R.drawable.ic_star_white_24dp :
+                R.drawable.ic_star_border_white_24dp);
+        activity.getSupportActionBar().setTitle(isShowingFavorite?
+                        getString(R.string.my_favorite) : getString(R.string.main_spotify_streamer));
+
         switch (selectDefault) {
             case POPULARITY:
                 menu.findItem(R.id.sort_by_popular).setChecked(true);
@@ -168,6 +173,10 @@ public class MoviesFragment extends Fragment {
                 selectDefault = FAVORITE;
                 isFavoriteChecked = true;
                 getMovies(APIConstants.POPULARITY_DESC);
+                break;
+            case R.id.show_favorite:
+                isShowingFavorite = !isShowingFavorite;
+                getActivity().invalidateOptionsMenu();
                 break;
             default:
                 return super.onOptionsItemSelected(item);

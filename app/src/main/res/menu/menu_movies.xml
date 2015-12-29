@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
-
-    <group android:checkableBehavior="single">
+    <item android:id="@+id/show_favorite"
+        android:title="@string/movie_show_favorite"
+        app:showAsAction="ifRoom" />
+    <group android:id="@+id/sort_group"
+        android:checkableBehavior="single">
         <item android:id="@+id/sort_by_popular"
             android:checked="true"
             android:title="@string/settings_sort_by_popularity"

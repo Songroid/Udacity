@@ -27,4 +27,5 @@
     <string name="settings_sort_by_favorite">Sort by favorite</string>
     <string name="movie_detail_share">Share</string>
     <string name="movie_show_favorite">Show favorite</string>
+    <string name="my_favorite">My Favorites</string>
 </resources>
