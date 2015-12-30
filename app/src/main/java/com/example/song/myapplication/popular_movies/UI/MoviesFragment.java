@@ -38,7 +38,6 @@ import java.util.List;
 
 public class MoviesFragment extends Fragment {
     private static final String TAG = "MoviesFragment";
-    private static final boolean LOG_ENABLED = false;
     private final static String MENU_SELECTED = "selected";
     private final static String FAVORITE_SELECTED = "selected";
 
@@ -76,15 +75,7 @@ public class MoviesFragment extends Fragment {
                 getString(R.string.fragment_movie_loading_message));
         mDialog.show();
 
-        switch (selectDefault) {
-            case POPULARITY: case FAVORITE:
-                getMovies(APIConstants.POPULARITY_DESC);
-                break;
-            case RATINGS:
-                getMovies(APIConstants.RATINGS_DESC);
-                break;
-        }
-
+        getMoviesBySelection();
         onCreateDb();
     }
 
@@ -106,8 +97,7 @@ public class MoviesFragment extends Fragment {
             public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
 
                 Movie movie = movies.get(position);
-
-                if (LOG_ENABLED) Log.d(TAG, movie.toString());
+                Log.d(TAG, movie.toString());
 
                 DetailFragment details = DetailFragment.newInstance(movie);
                 getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.place_holder, details).addToBackStack(null).commit();
@@ -119,16 +109,6 @@ public class MoviesFragment extends Fragment {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        if (!movies.isEmpty() && LOG_ENABLED) {
-            for (Movie movie : movies) {
-                Log.d(TAG, "Movie: " + movie);
-            }
-        }
-    }
-
-    @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         menu.clear();
         inflater.inflate(R.menu.menu_movies, menu);
@@ -137,8 +117,8 @@ public class MoviesFragment extends Fragment {
         menu.setGroupVisible(R.id.sort_group, !isShowingFavorite);
         favorite.setIcon(isShowingFavorite ? R.drawable.ic_star_white_24dp :
                 R.drawable.ic_star_border_white_24dp);
-        activity.getSupportActionBar().setTitle(isShowingFavorite?
-                        getString(R.string.my_favorite) : getString(R.string.main_spotify_streamer));
+        activity.getSupportActionBar().setTitle(isShowingFavorite ?
+                getString(R.string.my_favorite) : getString(R.string.main_spotify_streamer));
 
         switch (selectDefault) {
             case POPULARITY:
@@ -175,6 +155,14 @@ public class MoviesFragment extends Fragment {
                 getMovies(APIConstants.POPULARITY_DESC);
                 break;
             case R.id.show_favorite:
+                if (!isShowingFavorite) {
+                    List<Movie> temp = dao.queryForEq(Movie.IS_FAVORITE, true);
+                    movies.clear();
+                    movies.addAll(temp);
+                    mAdapter.notifyDataSetChanged();
+                } else {
+                    getMoviesBySelection();
+                }
                 isShowingFavorite = !isShowingFavorite;
                 getActivity().invalidateOptionsMenu();
                 break;
@@ -287,5 +275,16 @@ public class MoviesFragment extends Fragment {
         }
 
         return movie;
+    }
+
+    private void getMoviesBySelection() {
+        switch (selectDefault) {
+            case POPULARITY: case FAVORITE:
+                getMovies(APIConstants.POPULARITY_DESC);
+                break;
+            case RATINGS:
+                getMovies(APIConstants.RATINGS_DESC);
+                break;
+        }
     }
 }
