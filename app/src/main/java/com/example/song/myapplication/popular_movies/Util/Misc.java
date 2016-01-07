@@ -25,6 +25,8 @@ public class Misc {
     public static final String STAR_MARKED = "marked";
     public static final String STAR_UNMARKED = "unmarked";
     public static final String REVIEW_INTENT = "review_intent";
+    public static final String IS_TWO_PANE = "is_two_pane";
+
 
     public static ProgressDialog setUpDialog(ProgressDialog dialog, String title, String content) {
         dialog.setTitle(title);

@@ -62,14 +62,16 @@ public class DetailFragment extends Fragment {
     private String id;
 
     private Movie movie;
+    private boolean isTwoPane;
 
-    public static DetailFragment newInstance(Movie movie) {
+    public static DetailFragment newInstance(boolean isTwoPane, Movie movie) {
         if (movie == null) return null;
 
         DetailFragment myFragment = new DetailFragment();
 
         Bundle args = new Bundle();
         args.putString(APIConstants.ID, movie.getId());
+        args.putBoolean(Misc.IS_TWO_PANE, isTwoPane);
         myFragment.setArguments(args);
 
         return myFragment;
@@ -82,6 +84,7 @@ public class DetailFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         setHasOptionsMenu(true);
 
         trailers = new ArrayList<>();
@@ -91,6 +94,7 @@ public class DetailFragment extends Fragment {
         if (bundle != null) {
             id = bundle.getString(APIConstants.ID);
             movie = Misc.queryForId(getActivity(), id);
+            isTwoPane = bundle.getBoolean(Misc.IS_TWO_PANE);
         }
 
         // get trailer urls
@@ -178,16 +182,19 @@ public class DetailFragment extends Fragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        menu.clear();
-        inflater.inflate(R.menu.menu_movie_detail, menu);
+        if (!isTwoPane) {
+            menu.clear();
 
-        MenuItem item = menu.findItem(R.id.movie_detail_share);
-        ShareActionProvider mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+            inflater.inflate(R.menu.menu_movie_detail, menu);
 
-        if (!trailers.isEmpty()) {
-            Intent share = new Intent(Intent.ACTION_VIEW, Uri.parse(
-                    APIConstants.YOUTUBE_BASE_URL + "v=" + trailers.get(0).getKey()));
-            mShareActionProvider.setShareIntent(share);
+            MenuItem item = menu.findItem(R.id.movie_detail_share);
+            ShareActionProvider mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+
+            if (!trailers.isEmpty()) {
+                Intent share = new Intent(Intent.ACTION_VIEW, Uri.parse(
+                        APIConstants.YOUTUBE_BASE_URL + "v=" + trailers.get(0).getKey()));
+                mShareActionProvider.setShareIntent(share);
+            }
         }
     }
 

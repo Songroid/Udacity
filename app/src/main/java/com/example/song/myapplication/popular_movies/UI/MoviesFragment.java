@@ -3,6 +3,7 @@ package com.example.song.myapplication.popular_movies.UI;
 
 import android.app.ProgressDialog;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -41,8 +42,8 @@ import java.util.List;
 
 public class MoviesFragment extends Fragment {
     private static final String TAG = "MoviesFragment";
-    private final static String MENU_SELECTED = "selected";
-    private final static String FAVORITE_SELECTED = "selected";
+    private final static String MENU_SELECTED = "menu_selected";
+    private final static String FAVORITE_SELECTED = "favorite_selected";
 
     private static final int POPULARITY = 0;
     private static final int RATINGS = 1;
@@ -57,6 +58,22 @@ public class MoviesFragment extends Fragment {
     private boolean isFavoriteChecked;
     private boolean isShowingFavorite;
     private AppCompatActivity activity;
+    private boolean isTwoPane = false;
+    private OnListItemSelectedListener listener;
+
+    public static MoviesFragment newInstance(boolean isTwoPane) {
+        MoviesFragment moviesFragment = new MoviesFragment();
+
+        Bundle args = new Bundle();
+        args.putBoolean(Misc.IS_TWO_PANE, isTwoPane);
+        moviesFragment.setArguments(args);
+
+        return moviesFragment;
+    }
+
+    public interface OnListItemSelectedListener {
+        public void onItemSelected(Movie movie);
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -68,6 +85,10 @@ public class MoviesFragment extends Fragment {
         }
 
         setHasOptionsMenu(true);
+
+        if (getArguments() != null) {
+            isTwoPane = getArguments().getBoolean(Misc.IS_TWO_PANE);
+        }
 
         movies = new ArrayList<>();
 
@@ -81,12 +102,24 @@ public class MoviesFragment extends Fragment {
     }
 
     @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        activity = (AppCompatActivity) getActivity();
+        if (getActivity() instanceof OnListItemSelectedListener) {
+            listener = (OnListItemSelectedListener) getActivity();
+        } else {
+            throw new ClassCastException(
+                    activity.toString()
+                            + " must implement MoviesFragment.OnListItemSelectedListener");
+        }
+    }
+
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
 
         View view = inflater.inflate(R.layout.fragment_movies, container, false);
 
-        activity = (AppCompatActivity) getActivity();
         activity.getSupportActionBar().setDisplayHomeAsUpEnabled(false);
 
         GridView moviesView = (GridView) view.findViewById(R.id.movie_gridView);
@@ -100,9 +133,12 @@ public class MoviesFragment extends Fragment {
                 Movie movie = movies.get(position);
                 Log.d(TAG, movie.toString());
 
-                DetailFragment details = DetailFragment.newInstance(movie);
-                getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.place_holder, details).addToBackStack(null).commit();
-
+                if (!isTwoPane) {
+                    DetailFragment details = DetailFragment.newInstance(isTwoPane, movie);
+                    getActivity().getSupportFragmentManager().beginTransaction().replace(R.id.place_holder, details).addToBackStack(null).commit();
+                } else {
+                    listener.onItemSelected(movie);
+                }
             }
         });
 
@@ -221,10 +257,16 @@ public class MoviesFragment extends Fragment {
                     List<JSONObject> tmpList = new ArrayList<>();
                     tmpList = Misc.parseResult(new JSONObject(jsonData), tmpList);
 
+
+
                     // create or update database
-                    for (JSONObject json : tmpList) {
-                        Movie movie = getMoviefromJSON(json);
+                    for (int i=0; i<tmpList.size(); i++) {
+                        Movie movie = getMoviefromJSON(tmpList.get(i));
                         movies.add(movie);
+
+                        if (isTwoPane && i==0) {
+                            listener.onItemSelected(movie);
+                        }
 
                         createOrUpdate(movie);
 
@@ -328,6 +370,5 @@ public class MoviesFragment extends Fragment {
 
         return movies;
     }
-
 
 }
