@@ -1,7 +1,9 @@
 package com.example.song.myapplication.popular_movies.UI;
 
 
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -10,7 +12,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.ShareActionProvider;
-import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -26,13 +27,15 @@ import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.TrailerAdapter;
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
-import com.example.song.myapplication.popular_movies.Data.DatabaseHelper;
+import com.example.song.myapplication.popular_movies.Data.MovieColumns;
+import com.example.song.myapplication.popular_movies.Data.MovieProvider;
 import com.example.song.myapplication.popular_movies.Data.RestClient;
+import com.example.song.myapplication.popular_movies.Data.ReviewColumns;
+import com.example.song.myapplication.popular_movies.Data.TrailerColumns;
 import com.example.song.myapplication.popular_movies.Model.Movie;
 import com.example.song.myapplication.popular_movies.Model.Review;
 import com.example.song.myapplication.popular_movies.Model.Trailer;
 import com.example.song.myapplication.popular_movies.Util.Misc;
-import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -56,16 +59,7 @@ public class DetailFragment extends Fragment {
 
     private String reviewJsonString;
 
-    private String title;
-    private String posterUrl;
-    private String releaseDate;
-    private String ratings;
-    private String synopsis;
     private String id;
-
-    private RuntimeExceptionDao<Movie, String> dao;
-    private RuntimeExceptionDao<Trailer, String> trailerDao;
-    private RuntimeExceptionDao<Review, String> reviewDao;
 
     private Movie movie;
 
@@ -75,13 +69,7 @@ public class DetailFragment extends Fragment {
         DetailFragment myFragment = new DetailFragment();
 
         Bundle args = new Bundle();
-        args.putString(APIConstants.TITLE, movie.getTitle());
-        args.putString(APIConstants.POSTER_PATH, movie.getPoster_path());
-        args.putString(APIConstants.RELEASE_DATE, movie.getDate());
-        args.putString(APIConstants.RATINGS, movie.getRating());
-        args.putString(APIConstants.PLOT_SYNOPSIS, movie.getOverview());
         args.putString(APIConstants.ID, movie.getId());
-        args.putBoolean(APIConstants.IS_FAVORITE, movie.isFavorite());
         myFragment.setArguments(args);
 
         return myFragment;
@@ -101,26 +89,17 @@ public class DetailFragment extends Fragment {
 
         Bundle bundle = getArguments();
         if (bundle != null) {
-            title = bundle.getString(APIConstants.TITLE);
-            posterUrl = bundle.getString(APIConstants.POSTER_PATH);
-            releaseDate = bundle.getString(APIConstants.RELEASE_DATE);
-            ratings = bundle.getString(APIConstants.RATINGS);
-            synopsis = bundle.getString(APIConstants.PLOT_SYNOPSIS);
             id = bundle.getString(APIConstants.ID);
-            boolean isFavorite = bundle.getBoolean(APIConstants.IS_FAVORITE);
-
-            movie = new Movie(title, posterUrl, releaseDate, ratings, synopsis, id, isFavorite);
+            movie = Misc.queryForId(getActivity(), id);
         }
 
         // get trailer urls
         getTrailer(id);
         getReviews(id);
 
-        onCreateDb();
-
         // read db
-        List<Trailer> tmpTrailers = trailerDao.queryForEq(APIConstants.ID, movie.getId());
-        List<Review> tmpReviews = reviewDao.queryForEq(Review.MOVIE_ID, movie.getId());
+        List<Trailer> tmpTrailers = queryForTrailerId(movie.getId());
+        List<Review> tmpReviews = queryForReviewId(movie.getId());
         if (tmpTrailers != null && !tmpTrailers.isEmpty()) trailers.addAll(tmpTrailers);
         if (tmpReviews != null && !tmpReviews.isEmpty()) reviews.addAll(tmpReviews);
     }
@@ -142,19 +121,19 @@ public class DetailFragment extends Fragment {
         trailerView.setLayoutManager(layoutManager);
 
         TextView titleView = (TextView) view.findViewById(R.id.detail_title);
-        titleView.setText(title);
+        titleView.setText(movie.getTitle());
 
         ImageView posterView = (ImageView) view.findViewById(R.id.detail_poster);
-        RestClient.getPosterImage(posterUrl, getActivity(), posterView);
+        RestClient.getPosterImage(movie.getPoster_path(), getActivity(), posterView);
 
         TextView dateView = (TextView) view.findViewById(R.id.detail_date);
-        dateView.setText(releaseDate);
+        dateView.setText(movie.getDate());
 
         TextView ratingView = (TextView) view.findViewById(R.id.detail_ratings);
-        ratingView.setText(getString(R.string.rating_unit, ratings));
+        ratingView.setText(getString(R.string.rating_unit, movie.getRating()));
 
         TextView overview = (TextView) view.findViewById(R.id.detail_overview);
-        overview.setText(synopsis);
+        overview.setText(movie.getOverview());
 
         final Button review = (Button) view.findViewById(R.id.review_button);
         review.setOnClickListener(new View.OnClickListener() {
@@ -190,7 +169,7 @@ public class DetailFragment extends Fragment {
                     movie.setIsFavorite(false);
                     star.setTag(Misc.STAR_UNMARKED);
                 }
-                dao.update(movie);
+                Misc.updateData(getActivity(), movie);
             }
         });
 
@@ -221,18 +200,6 @@ public class DetailFragment extends Fragment {
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    @Override
-    public String toString() {
-        return "DetailFragment{" +
-                "title='" + title + '\'' +
-                ", posterUrl='" + posterUrl + '\'' +
-                ", releaseDate='" + releaseDate + '\'' +
-                ", ratings='" + ratings + '\'' +
-                ", synopsis='" + synopsis + '\'' +
-                ", id='" + id + '\'' +
-                '}';
     }
 
     private void getTrailer(String id) {
@@ -269,7 +236,7 @@ public class DetailFragment extends Fragment {
                                 json.getString(APIConstants.KEY),
                                 movie.getId());
 
-                        trailerDao.createOrUpdate(trailer);
+                        createOrUpdateTrailer(trailer);
                         trailers.add(trailer);
                     }
 
@@ -317,9 +284,10 @@ public class DetailFragment extends Fragment {
                     for (JSONObject json : reviewJSONs) {
                         Review review = new Review(json.getString(APIConstants.AUTHOR),
                                 json.getString(APIConstants.CONTENT),
-                                movie.getId());
+                                movie.getId(),
+                                json.getString(APIConstants.ID));
 
-                        reviewDao.createOrUpdate(review);
+                        createOrUpdateReview(review);
                         reviews.add(review);
                     }
                 } catch (JSONException e) {
@@ -329,10 +297,167 @@ public class DetailFragment extends Fragment {
         });
     }
 
-    private void onCreateDb() {
-        dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
-        dao.createOrUpdate(movie);
-        trailerDao = DatabaseHelper.getInstance(getActivity()).getTrailerDao();
-        reviewDao = DatabaseHelper.getInstance(getActivity()).getReviewDao();
+    private void createOrUpdateTrailer(Trailer trailer) {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Trailers.CONTENT_URI,
+                        null,
+                        TrailerColumns.KEY + " = ?",
+                        new String[]{trailer.getKey()},
+                        null);
+        if (c == null || c.getCount() == 0) {
+            handleTrailer(trailer, false);
+        } else {
+            handleTrailer(trailer, true);
+        }
+        if (c != null) c.close();
+    }
+
+    private void createOrUpdateReview(Review review) {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Reviews.CONTENT_URI,
+                        null,
+                        ReviewColumns.REVIEW_ID + " = ?",
+                        new String[]{review.getReviewId()},
+                        null);
+        if (c == null || c.getCount() == 0) {
+            handleReview(review, false);
+        } else {
+            handleReview(review, true);
+        }
+        if (c != null) c.close();
+    }
+
+    private void handleTrailer(Trailer trailer, boolean isUpdate) {
+        if (isUpdate) {
+            getActivity().getContentResolver().update(
+                    MovieProvider.Trailers.CONTENT_URI,
+                    generateValuesFromTrailer(trailer),
+                    TrailerColumns.KEY + " = ?",
+                    new String[]{trailer.getKey()}
+            );
+        } else {
+            // insert
+            getActivity().getContentResolver().insert(
+                    MovieProvider.Trailers.CONTENT_URI,
+                    generateValuesFromTrailer(trailer)
+            );
+        }
+    }
+
+    private void handleReview(Review review, boolean isUpdate) {
+        if (isUpdate) {
+            getActivity().getContentResolver().update(
+                    MovieProvider.Reviews.CONTENT_URI,
+                    generateValuesFromReview(review),
+                    ReviewColumns.REVIEW_ID + " = ?",
+                    new String[]{review.getReviewId()}
+            );
+        } else {
+            // insert
+            getActivity().getContentResolver().insert(
+                    MovieProvider.Reviews.CONTENT_URI,
+                    generateValuesFromReview(review)
+            );
+        }
+    }
+
+    private ContentValues generateValuesFromTrailer(Trailer trailer) {
+        ContentValues values = new ContentValues();
+
+        values.put(TrailerColumns.KEY, trailer.getKey());
+        values.put(TrailerColumns.ID, trailer.getId());
+        values.put(TrailerColumns.NAME, trailer.getName());
+        values.put(TrailerColumns.SITE, trailer.getSite());
+
+        return values;
+    }
+
+    private ContentValues generateValuesFromReview(Review review) {
+        ContentValues values = new ContentValues();
+
+        values.put(ReviewColumns.AUTHOR, review.getAuthor());
+        values.put(ReviewColumns.CONTENT, review.getContent());
+        values.put(ReviewColumns.MOVIE_ID, review.getMovieId());
+        values.put(ReviewColumns.REVIEW_ID, review.getReviewId());
+
+        return values;
+    }
+
+    private List<Trailer> queryForTrailerId(String id) {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Trailers.CONTENT_URI,
+                        null,
+                        TrailerColumns.ID + " = ?",
+                        new String[]{id},
+                        null);
+        List<Trailer> trailers = new ArrayList<>();
+
+        if (c != null) {
+            while (c.moveToNext()) {
+                Trailer trailer = new Trailer();
+
+                for (int i=0; i<c.getColumnCount(); i++) {
+//                    Log.d(TAG, "queryForTrailerId " + c.getColumnName(i) + ": " + c.getString(i));
+                    String value = c.getString(i);
+                    switch (i) {
+                        case 1:
+                            trailer.setName(value);
+                            break;
+                        case 2:
+                            trailer.setSite(value);
+                            break;
+                        case 3:
+                            trailer.setKey(value);
+                            break;
+                        case 4:
+                            trailer.setId(value);
+                            break;
+                    }
+                }
+                trailers.add(trailer);
+            }
+            c.close();
+        }
+
+        return trailers;
+    }
+
+    private List<Review> queryForReviewId(String id) {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Reviews.CONTENT_URI,
+                        null,
+                        ReviewColumns.MOVIE_ID + " = ?",
+                        new String[]{id},
+                        null);
+        List<Review> reviews = new ArrayList<>();
+
+        if (c != null) {
+            while (c.moveToNext()) {
+                Review review = new Review();
+
+                for (int i=0; i<c.getColumnCount(); i++) {
+//                    Log.d(TAG, "queryForReviewId " + c.getColumnName(i) + ": " + c.getString(i));
+                    String value = c.getString(i);
+                    switch (i) {
+                        case 1:
+                            review.setAuthor(value);
+                            break;
+                        case 2:
+                            review.setContent(value);
+                            break;
+                        case 3:
+                            review.setMovieId(value);
+                            break;
+                        case 4:
+                            review.setReviewId(value);
+                            break;
+                    }
+                }
+                reviews.add(review);
+            }
+            c.close();
+        }
+
+        return reviews;
     }
 }

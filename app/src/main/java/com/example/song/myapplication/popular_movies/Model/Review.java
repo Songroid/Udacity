@@ -3,8 +3,6 @@ package com.example.song.myapplication.popular_movies.Model;
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import com.j256.ormlite.field.DatabaseField;
-
 /**
  * Created by Song on 12/20/15.
  */
@@ -12,29 +10,26 @@ public class Review implements Parcelable {
 
     public static final String MOVIE_ID = "movieId";
 
-    @DatabaseField(index = true)
     private String author;
-    @DatabaseField
     private String content;
-    @DatabaseField
     private String movieId;
-    @DatabaseField(generatedId = true)
-    private int id;
-
-    public Review() {
-        // needed by ormlite
-    }
+    private String reviewId;
 
     private Review(Parcel in) {
         author = in.readString();
         content = in.readString();
         movieId = in.readString();
+        reviewId = in.readString();
     }
 
-    public Review(String author, String content, String movieId) {
+    public Review() {
+    }
+
+    public Review(String author, String content, String movieId, String reviewId) {
         this.author = author;
         this.content = content;
         this.movieId = movieId;
+        this.reviewId = reviewId;
     }
 
     public String getAuthor() {
@@ -44,9 +39,10 @@ public class Review implements Parcelable {
     @Override
     public String toString() {
         return "Review{" +
-                "movieId='" + movieId + '\'' +
+                "author='" + author + '\'' +
                 ", content='" + content + '\'' +
-                ", author='" + author + '\'' +
+                ", movieId='" + movieId + '\'' +
+                ", reviewId='" + reviewId + '\'' +
                 '}';
     }
 
@@ -70,6 +66,14 @@ public class Review implements Parcelable {
         this.movieId = movieId;
     }
 
+    public String getReviewId() {
+        return reviewId;
+    }
+
+    public void setReviewId(String reviewId) {
+        this.reviewId = reviewId;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -80,6 +84,7 @@ public class Review implements Parcelable {
         out.writeString(author);
         out.writeString(content);
         out.writeString(movieId);
+        out.writeString(reviewId);
     }
 
     public static final Parcelable.Creator<Review> CREATOR

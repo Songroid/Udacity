@@ -27,6 +27,10 @@
             android:excludeFromRecents="true"
             android:label="@string/title_activity_review"
             android:theme="@style/Theme.MyDialog" />
+        <provider
+            android:authorities="com.example.song.myapplication.popular_movies.Data.MovieProvider"
+            android:name="com.example.song.myapplication.popular_movies.Data.generated.MovieProvider"
+            android:exported="false"/>
     </application>
 
 </manifest>

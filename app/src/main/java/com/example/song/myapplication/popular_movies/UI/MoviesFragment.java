@@ -2,6 +2,9 @@ package com.example.song.myapplication.popular_movies.UI;
 
 
 import android.app.ProgressDialog;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
@@ -19,10 +22,10 @@ import com.example.song.myapplication.BuildConfig;
 import com.example.song.myapplication.R;
 import com.example.song.myapplication.popular_movies.Adapter.MoviesAdapter;
 import com.example.song.myapplication.popular_movies.Data.APIConstants;
-import com.example.song.myapplication.popular_movies.Data.DatabaseHelper;
+import com.example.song.myapplication.popular_movies.Data.MovieColumns;
+import com.example.song.myapplication.popular_movies.Data.MovieProvider;
 import com.example.song.myapplication.popular_movies.Model.Movie;
 import com.example.song.myapplication.popular_movies.Util.Misc;
-import com.j256.ormlite.dao.RuntimeExceptionDao;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
 import com.squareup.okhttp.Request;
@@ -50,7 +53,6 @@ public class MoviesFragment extends Fragment {
     private MoviesAdapter mAdapter;
 
     private int selectDefault;
-    private RuntimeExceptionDao<Movie, String> dao;
 
     private boolean isFavoriteChecked;
     private boolean isShowingFavorite;
@@ -76,7 +78,6 @@ public class MoviesFragment extends Fragment {
         mDialog.show();
 
         getMoviesBySelection();
-        onCreateDb();
     }
 
     @Override
@@ -156,9 +157,14 @@ public class MoviesFragment extends Fragment {
                 break;
             case R.id.show_favorite:
                 if (!isShowingFavorite) {
-                    List<Movie> temp = dao.queryForEq(Movie.IS_FAVORITE, true);
+                    List<Movie> tempList = new ArrayList<>();
+                    for (Movie movie : queryForAll()) {
+                        if (movie.isFavorite()) {
+                            tempList.add(movie);
+                        }
+                    }
                     movies.clear();
-                    movies.addAll(temp);
+                    movies.addAll(tempList);
                     mAdapter.notifyDataSetChanged();
                 } else {
                     getMoviesBySelection();
@@ -217,9 +223,10 @@ public class MoviesFragment extends Fragment {
 
                     // create or update database
                     for (JSONObject json : tmpList) {
-                        Movie movie = getMoviefromJSON(json, true);
+                        Movie movie = getMoviefromJSON(json);
                         movies.add(movie);
-                        dao.createOrUpdate(movie);
+
+                        createOrUpdate(movie);
 
                         if (isFavoriteChecked) {
                             Collections.sort(movies);
@@ -247,17 +254,13 @@ public class MoviesFragment extends Fragment {
         mAdapter.notifyDataSetChanged();
     }
 
-    private void onCreateDb() {
-        dao = DatabaseHelper.getInstance(getActivity()).getMovieDao();
-    }
-
-    private Movie getMoviefromJSON(JSONObject json, boolean forceUpdate) throws JSONException {
+    private Movie getMoviefromJSON(JSONObject json) throws JSONException {
         Movie movie;
         boolean isFavorite = false;
 
         String id = json.getString(APIConstants.ID);
 
-        Movie movieFromDb = dao.queryForId(id);
+        Movie movieFromDb = Misc.queryForId(getActivity(), id);
         if (movieFromDb != null) isFavorite = movieFromDb.isFavorite();
 
         movie = new Movie(json.getString(APIConstants.TITLE),
@@ -268,11 +271,7 @@ public class MoviesFragment extends Fragment {
                 id,
                 isFavorite);
 
-        if (forceUpdate) {
-            dao.createOrUpdate(movie);
-        } else {
-            if (dao.idExists(id)) movie = dao.queryForId(id);
-        }
+        createOrUpdate(movie);
 
         return movie;
     }
@@ -287,4 +286,48 @@ public class MoviesFragment extends Fragment {
                 break;
         }
     }
+
+    private Uri insertData(Movie movie) {
+        return getActivity().getContentResolver().insert(
+                MovieProvider.Movies.CONTENT_URI,
+                Misc.generateValuesFromMovie(movie)
+        );
+    }
+
+    private void createOrUpdate(Movie movie) {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Movies.CONTENT_URI,
+                        null,
+                        MovieColumns.MOVIE_ID + " = ?",
+                        new String[]{movie.getId()},
+                        null);
+        if (c == null || c.getCount() == 0) {
+            insertData(movie);
+        } else {
+            Misc.updateData(getActivity(), movie);
+        }
+        if (c != null) c.close();
+    }
+
+    private List<Movie> queryForAll() {
+        Cursor c = getActivity().getContentResolver()
+                .query(MovieProvider.Movies.CONTENT_URI, null, null, null, null);
+        List<Movie> movies = new ArrayList<>();
+
+        if (c != null) {
+            while (c.moveToNext()) {
+                Movie movie = new Movie();
+                for (int i=0; i<c.getColumnCount(); i++) {
+//                    Log.d(TAG, "queryForId " + c.getColumnName(i) + ": " + c.getString(i));
+                    Misc.parse(i, movie, c.getString(i));
+                }
+                movies.add(movie);
+            }
+            c.close();
+        }
+
+        return movies;
+    }
+
+
 }

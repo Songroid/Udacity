@@ -1,7 +1,5 @@
 package com.example.song.myapplication.popular_movies.Model;
 
-import com.j256.ormlite.field.DatabaseField;
-
 /**
  * Created by Song on 11/16/15.
  */
@@ -9,23 +7,15 @@ public class Movie implements Comparable {
 
     public static final String IS_FAVORITE = "isFavorite";
 
-    @DatabaseField(index = true)
     private String title;
-    @DatabaseField
     private String poster_path;
-    @DatabaseField
     private String date;
-    @DatabaseField
     private String rating;
-    @DatabaseField
     private String overview;
-    @DatabaseField(id = true)
     private String id;
-    @DatabaseField
     private boolean isFavorite;
 
     public Movie() {
-        // needed by ormlite
     }
 
     public Movie(String title, String poster_path, String date, String rating, String overview, String id, boolean isFavorite) {

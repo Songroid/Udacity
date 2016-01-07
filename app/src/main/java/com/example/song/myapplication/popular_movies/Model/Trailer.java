@@ -1,23 +1,15 @@
 package com.example.song.myapplication.popular_movies.Model;
 
-import com.example.song.myapplication.popular_movies.Data.APIConstants;
-import com.j256.ormlite.field.DatabaseField;
-
 /**
  * Created by Song on 12/19/15.
  */
 public class Trailer {
-    @DatabaseField(index = true)
     private String name;
-    @DatabaseField
     private String site;
-    @DatabaseField(id = true)
     private String key;
-    @DatabaseField(columnName = APIConstants.ID)
     private String id;
 
     public Trailer() {
-        // needed by ormlite
     }
 
     public Trailer(String name, String site, String key, String id) {
